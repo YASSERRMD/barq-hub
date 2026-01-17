@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
     Select,
@@ -42,7 +43,9 @@ import {
     PlayCircle,
     Copy,
     ArrowUpDown,
-    Info
+    ArrowUpDown,
+    Info,
+    Search
 } from 'lucide-react';
 import { getProviderLogo } from "@/components/providers/provider-logos";
 
@@ -109,6 +112,7 @@ export default function ProvidersPage() {
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // New account form state with multi-tier quotas
     const [newAccount, setNewAccount] = useState({
@@ -876,6 +880,11 @@ export default function ProvidersPage() {
         );
     };
 
+    const filteredProviders = providers.filter(p =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.type.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
         <div className="space-y-6 animate-fade-in">
             {successMessage && (
@@ -885,364 +894,347 @@ export default function ProvidersPage() {
                 </div>
             )}
 
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">Providers</h1>
-                <p className="text-muted-foreground">
-                    Manage your AI provider accounts, quotas, and model configurations.
-                </p>
+            {/* Header Section */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1">
+                    <h1 className="text-3xl font-bold tracking-tight">Providers</h1>
+                    <p className="text-muted-foreground">
+                        Manage your AI provider accounts, quotas, and model configurations.
+                    </p>
+                </div>
+                <div className="flex gap-2 w-full md:w-auto">
+                    <div className="relative w-full md:w-64">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search providers..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9 bg-background"
+                        />
+                    </div>
+                    <Button variant="outline" onClick={fetchProvidersAndAccounts} disabled={fetchingProviders}>
+                        <RefreshCw className={`w-4 h-4 mr-2 ${fetchingProviders ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
+                </div>
+            </div>
 
-                <Alert className="bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300">
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>Smart Fallback & Rotation</AlertTitle>
-                    <AlertDescription>
-                        The system automatically routes requests based on account <strong>Priority</strong> (Lower value = Higher priority).
-                        If your primary account (e.g. Priority 0) runs out of quota or fails, the system seamlessly falls back to the next available account (Priority 1, 2, etc.).
-                        When the primary account's quota resets, it will be automatically restored as the main provider.
-                    </AlertDescription>
-                </Alert>
-            </div>
-            <div className="flex items-center justify-between">
-                <div /> {/* Empty div to balance the flex layout if needed, or remove if not */}
-                <Button variant="outline" onClick={fetchProvidersAndAccounts} disabled={fetchingProviders}>
-                    <RefreshCw className={`w-4 h-4 mr-2 ${fetchingProviders ? 'animate-spin' : ''}`} />
-                    Refresh
-                </Button>
-            </div>
+            <Alert className="bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Smart Fallback & Rotation</AlertTitle>
+                <AlertDescription>
+                    The system automatically routes requests based on account <strong>Priority</strong> (Lower value = Higher priority).
+                    If your primary account (e.g. Priority 0) runs out of quota or fails, the system seamlessly falls back to the next available account (Priority 1, 2, etc.).
+                    When the primary account's quota resets, it will be automatically restored as the main provider.
+                </AlertDescription>
+            </Alert>
 
             <div className="grid grid-cols-12 gap-6 mt-6">
                 {/* Provider List (Left Column) */}
                 <div className="col-span-12 lg:col-span-4 space-y-2">
-                    {providers.map((provider) => {
-                        const activeAccounts = provider.accounts.filter(a => a.enabled && hasQuota(a)).length;
-                        const exhaustedAccounts = provider.accounts.filter(a => a.enabled && !hasQuota(a)).length;
-                        const totalAccounts = provider.accounts.length;
-
-                        return (
-                            <div
-                                key={provider.id}
-                                onClick={() => setSelectedId(provider.id)}
-                                className={`
-                                     flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all
-                                     ${selectedId === provider.id
-                                        ? 'bg-primary/10 ring-2 ring-primary shadow-lg'
-                                        : 'bg-card hover:bg-accent border border-border'
-                                    }
-                                 `}
-                            >
-                                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${provider.gradient} flex items-center justify-center shadow`}>
-                                    {getProviderLogo(provider.id, "w-6 h-6 text-white") || <Cpu className="w-5 h-5 text-white" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="font-medium truncate">{provider.name}</h3>
-                                        {activeAccounts > 0 && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
-                                        {activeAccounts === 0 && exhaustedAccounts > 0 && <div className="w-2 h-2 rounded-full bg-amber-500" />}
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                        <Badge variant="secondary" className="text-xs">
-                                            {provider.type === 'both' ? 'LLM + Embed' : provider.type}
-                                        </Badge>
-                                        {totalAccounts > 0 && (
-                                            <span className="text-xs text-muted-foreground">
-                                                {activeAccounts}/{totalAccounts} active
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                                <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${selectedId === provider.id ? 'rotate-90' : ''}`} />
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* Provider Details (Right Column) */}
-                <div className="col-span-12 lg:col-span-8">
-                    {selected ? (
-                        <div className="space-y-6">
-                            <div className={`relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br ${selected.gradient}`}>
-                                <div className="absolute inset-0 bg-black/10" />
-                                <div className="relative z-10 flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
-                                            {getProviderLogo(selected.id, "w-8 h-8 text-white") || <Cpu className="w-8 h-8 text-white" />}
-                                        </div>
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-white">{selected.name}</h2>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                {selected.isAzure && <Badge className="bg-white/20 text-white border-0"><Shield className="w-3 h-3 mr-1" />Azure</Badge>}
-                                                {selected.isAWS && <Badge className="bg-white/20 text-white border-0"><Cloud className="w-3 h-3 mr-1" />AWS</Badge>}
-                                                <Badge className="bg-white/20 text-white border-0">{selected.accounts.length} account(s)</Badge>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                                        <Button className="bg-white text-slate-900 hover:bg-white/90" onClick={openAddDialog}>
-                                            <Plus className="w-4 h-4 mr-2" />
-                                            Add Account
-                                        </Button>
-                                        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-                                            <DialogHeader>
-                                                <DialogTitle>Add {selected.name} Account</DialogTitle>
-                                            </DialogHeader>
-                                            {renderAddAccountForm()}
-                                        </DialogContent>
-                                    </Dialog>
-                                </div>
-                            </div>
-
-                            {selected.accounts.length === 0 ? (
-                                <Card className="p-12 text-center border-dashed">
-                                    <Key className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                                    <h3 className="text-lg font-semibold mb-2">No accounts configured</h3>
-                                    <p className="text-muted-foreground mb-4">Add an account to start using this provider</p>
-                                    <Button onClick={openAddDialog}>
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        Add Account
-                                    </Button>
-                                </Card>
-                            ) : (
-                                <div className="space-y-4">
-                                    <h3 className="font-semibold">Accounts ({selected.accounts.length})</h3>
-                                    {selected.accounts.map(renderAccountCard)}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <Card className="h-full min-h-[500px] flex items-center justify-center border-dashed">
-                            <div className="text-center">
-                                <Settings className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
-                                <h3 className="text-xl font-semibold mb-2">Select a Provider</h3>
-                                <p className="text-muted-foreground">Choose a provider from the list to configure</p>
-                            </div>
-                        </Card>
+                    {totalAccounts > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                            {activeAccounts}/{totalAccounts} active
+                        </span>
                     )}
                 </div>
             </div>
-
-            {/* Dialogs */}
-            <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-destructive">
-                            <AlertCircle className="w-5 h-5" />
-                            Delete Account
-                        </DialogTitle>
-                        <DialogDescription>
-                            Are you sure you want to delete the account <strong>&quot;{String(accountToDelete?.name || '')}&quot;</strong>?
-                            This action cannot be undone.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
-                        <Button
-                            variant="destructive"
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                            onClick={handleDeleteAccount}
-                            disabled={deleting}
-                        >
-                            {deleting ? 'Deleting...' : 'Delete Account'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Edit Account</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div>
-                            <Label>Account Name</Label>
-                            <Input className="mt-1.5" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="Account name" />
-                        </div>
-                        <div>
-                            <Label className="flex items-center gap-2">
-                                Priority
-                                <span className="text-xs font-normal text-muted-foreground ml-auto">(Lower = Higher Priority)</span>
-                            </Label>
-                            <Input
-                                type="number"
-                                className="mt-1.5"
-                                value={editForm.priority}
-                                onChange={(e) => setEditForm({ ...editForm, priority: parseInt(e.target.value) || 0 })}
-                            />
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                                Priority 0 is used first. Higher numbers (1, 2...) are backups.
-                            </p>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <Label>Enabled</Label>
-                            <Switch checked={editForm.enabled} onCheckedChange={(checked: boolean) => setEditForm({ ...editForm, enabled: checked })} />
-                        </div>
-
-                        {/* Quotas Section */}
-                        <div className="pt-3 border-t">
-                            <Label className="flex items-center gap-2 mb-3"><Clock className="w-4 h-4" /> Quotas & Limits</Label>
-                            <div className="grid grid-cols-2 gap-3">
-                                {(['minute', 'hour', 'day', 'month'] as QuotaPeriod[]).map((period) => {
-                                    const tier = editForm.quotas.find(q => q.period === period);
-                                    const isEnabled = !!tier;
-                                    return (
-                                        <div key={period} className="p-2 border rounded-md bg-slate-50 dark:bg-slate-900">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <Label className="text-xs capitalize font-semibold">{period}</Label>
-                                                <Switch
-                                                    checked={isEnabled}
-                                                    onCheckedChange={(checked) => {
-                                                        let newQuotas = [...editForm.quotas];
-                                                        if (checked) {
-                                                            if (!newQuotas.find(q => q.period === period)) {
-                                                                newQuotas.push({ period, tokenLimit: 100000, tokensUsed: 0, secondsUntilReset: 0, requestsUsed: 0 });
-                                                            }
-                                                        } else {
-                                                            newQuotas = newQuotas.filter(q => q.period !== period);
-                                                        }
-                                                        setEditForm({ ...editForm, quotas: newQuotas });
-                                                    }}
-                                                    className="scale-75"
-                                                />
-                                            </div>
-                                            {isEnabled && (
-                                                <div>
-                                                    <Label className="text-[10px] text-muted-foreground">Token Limit</Label>
-                                                    <Input
-                                                        type="number"
-                                                        className="h-7 text-xs bg-white dark:bg-black"
-                                                        value={tier?.tokenLimit?.toString() || ''}
-                                                        onChange={(e) => {
-                                                            const val = parseInt(e.target.value) || 0;
-                                                            setEditForm({
-                                                                ...editForm,
-                                                                quotas: editForm.quotas.map(q => q.period === period ? { ...q, tokenLimit: val } : q)
-                                                            });
-                                                        }}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Models Section */}
-                        <div className="pt-3 border-t">
-                            <Label className="flex items-center gap-2 mb-3"><Cpu className="w-4 h-4" /> Models</Label>
-
-                            {/* Language Models List */}
-                            <div className="mb-3">
-                                <Label className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider block">Language Models</Label>
-                                <div className="border rounded-md divide-y bg-slate-50/50 dark:bg-slate-900/20">
-                                    {editForm.models.filter(m => m && Array.isArray(m.capabilities) && m.capabilities.some(c => String(c).toLowerCase() === 'llm')).map((model, idx) => (
-                                        <div key={String(model.name || idx)} className="grid grid-cols-12 gap-2 p-2 items-center text-sm">
-                                            <div className="col-span-11 font-medium flex items-center gap-2">
-                                                <span>{String(model.name || 'Unknown')}</span>
-                                                {(model.input_token_cost !== undefined || model.output_token_cost !== undefined) && (
-                                                    <Badge variant="outline" className="text-[10px] px-1 h-5 gap-1 font-normal text-muted-foreground">
-                                                        <span>${model.input_token_cost || 0}</span>
-                                                        <span>/</span>
-                                                        <span>${model.output_token_cost || 0}</span>
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                            <div className="col-span-1 text-right">
-                                                <button onClick={() => removeModelFromEditForm(model)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {editForm.models.filter(m => m && Array.isArray(m.capabilities) && m.capabilities.some(c => String(c).toLowerCase() === 'llm')).length === 0 && (
-                                        <div className="p-3 text-center text-xs text-muted-foreground italic">No language models configured</div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Embedding Models List */}
-                            <div className="mb-3">
-                                <Label className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider block">Embedding Models</Label>
-                                <div className="border rounded-md divide-y bg-slate-50/50 dark:bg-slate-900/20">
-                                    {editForm.models.filter(m => m && Array.isArray(m.capabilities) && m.capabilities.some(c => String(c).toLowerCase() === 'embedding')).map((model, idx) => (
-                                        <div key={String(model.name || idx)} className="grid grid-cols-12 gap-2 p-2 items-center text-sm">
-                                            <div className="col-span-11 font-medium flex items-center gap-2">
-                                                <span>{String(model.name || 'Unknown')}</span>
-                                                {(model.input_token_cost !== undefined || model.output_token_cost !== undefined) && (
-                                                    <Badge variant="outline" className="text-[10px] px-1 h-5 gap-1 font-normal text-muted-foreground">
-                                                        <span>${model.input_token_cost || 0}</span>
-                                                        <span>/</span>
-                                                        <span>${model.output_token_cost || 0}</span>
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                            <div className="col-span-1 text-right">
-                                                <button onClick={() => removeModelFromEditForm(model)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {editForm.models.filter(m => m && Array.isArray(m.capabilities) && m.capabilities.some(c => String(c).toLowerCase() === 'embedding')).length === 0 && (
-                                        <div className="p-3 text-center text-xs text-muted-foreground italic">No embedding models configured</div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border space-y-2">
-                                <Label className="block text-xs font-medium text-muted-foreground">ADD NEW MODEL</Label>
-                                <div className="flex gap-2">
-                                    <Input placeholder="Model Name (e.g., gpt-4o)" value={editForm.newModel} onChange={(e) => setEditForm({ ...editForm, newModel: e.target.value })} className="bg-white dark:bg-black h-8 flex-1" />
-                                    <select
-                                        className="h-8 rounded-md border border-input bg-white dark:bg-black px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={editForm.newModelType || 'llm'}
-                                        onChange={(e) => setEditForm({ ...editForm, newModelType: e.target.value })}
-                                    >
-                                        <option value="llm">LLM</option>
-                                        <option value="embedding">Embedding</option>
-                                    </select>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <Label className="text-[10px] text-muted-foreground">Input Cost ($/1M)</Label>
-                                        <Input type="number" placeholder="0.00" value={editForm.newModelInputCost} onChange={(e) => setEditForm({ ...editForm, newModelInputCost: e.target.value })} className="bg-white dark:bg-black h-8" />
-                                    </div>
-                                    <div>
-                                        <Label className="text-[10px] text-muted-foreground">Output Cost ($/1M)</Label>
-                                        <Input type="number" placeholder="0.00" value={editForm.newModelOutputCost} onChange={(e) => setEditForm({ ...editForm, newModelOutputCost: e.target.value })} className="bg-white dark:bg-black h-8" />
-                                    </div>
-                                </div>
-                                <Button
-                                    type="button"
-                                    onClick={() => {
-                                        const type = editForm.newModelType || 'llm';
-                                        const model = {
-                                            id: editForm.newModel,
-                                            name: editForm.newModel,
-                                            capabilities: [type as any],
-                                            input_token_cost: parseFloat(editForm.newModelInputCost) || 0,
-                                            output_token_cost: parseFloat(editForm.newModelOutputCost) || 0
-                                        };
-                                        setEditForm({
-                                            ...editForm,
-                                            models: [...editForm.models, model],
-                                            newModel: '',
-                                            newModelInputCost: '',
-                                            newModelOutputCost: ''
-                                        });
-                                    }}
-                                    disabled={!editForm.newModel.trim()}
-                                    size="sm"
-                                    className="w-full h-8"
-                                >
-                                    <Plus className="w-4 h-4 mr-2" /> Add {editForm.newModelType === 'embedding' ? 'Embedding' : 'LLM'} Model
-                                </Button>
-                            </div>
-                        </div>
-
-                        {error && <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-500">{error}</div>}
-                    </div>
-                    <div className="flex gap-3 justify-end">
-                        <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleSaveAccount} disabled={saving || !editForm.name}>{saving ? 'Saving...' : 'Save Changes'}</Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${selectedId === provider.id ? 'rotate-90' : ''}`} />
         </div>
+    );
+})}
+                </div >
+
+    {/* Provider Details (Right Column) */ }
+    < div className = "col-span-12 lg:col-span-8" >
+    {
+        selected?(
+                        <div className = "space-y-6" >
+                <div className={`relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br ${selected.gradient}`}>
+                    <div className="absolute inset-0 bg-black/10" />
+                    <div className="relative z-10 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+                                {getProviderLogo(selected.id, "w-8 h-8 text-white") || <Cpu className="w-8 h-8 text-white" />}
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-white">{selected.name}</h2>
+                                <div className="flex items-center gap-2 mt-1">
+                                    {selected.isAzure && <Badge className="bg-white/20 text-white border-0"><Shield className="w-3 h-3 mr-1" />Azure</Badge>}
+                                    {selected.isAWS && <Badge className="bg-white/20 text-white border-0"><Cloud className="w-3 h-3 mr-1" />AWS</Badge>}
+                                    <Badge className="bg-white/20 text-white border-0">{selected.accounts.length} account(s)</Badge>
+                                </div>
+                            </div>
+                        </div>
+                        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                            <Button className="bg-white text-slate-900 hover:bg-white/90" onClick={openAddDialog}>
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Account
+                            </Button>
+                            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle>Add {selected.name} Account</DialogTitle>
+                                </DialogHeader>
+                                {renderAddAccountForm()}
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                </div>
+
+                            { selected.accounts.length === 0 ? (
+            <Card className="p-12 text-center border-dashed">
+                <Key className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No accounts configured</h3>
+                <p className="text-muted-foreground mb-4">Add an account to start using this provider</p>
+                <Button onClick={openAddDialog}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Account
+                </Button>
+            </Card>
+        ) : (
+            <div className="space-y-4">
+                <h3 className="font-semibold">Accounts ({selected.accounts.length})</h3>
+                {selected.accounts.map(renderAccountCard)}
+            </div>
+        )
+    }
+                        </div >
+                    ) : (
+    <Card className="h-full min-h-[500px] flex items-center justify-center border-dashed">
+        <div className="text-center">
+            <Settings className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Select a Provider</h3>
+            <p className="text-muted-foreground">Choose a provider from the list to configure</p>
+        </div>
+    </Card>
+)}
+                </div >
+            </div >
+
+    {/* Dialogs */ }
+    < Dialog open = { deleteConfirmOpen } onOpenChange = { setDeleteConfirmOpen } >
+        <DialogContent className="max-w-md">
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-destructive">
+                    <AlertCircle className="w-5 h-5" />
+                    Delete Account
+                </DialogTitle>
+                <DialogDescription>
+                    Are you sure you want to delete the account <strong>&quot;{String(accountToDelete?.name || '')}&quot;</strong>?
+                    This action cannot be undone.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+                <Button
+                    variant="destructive"
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    onClick={handleDeleteAccount}
+                    disabled={deleting}
+                >
+                    {deleting ? 'Deleting...' : 'Delete Account'}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+            </Dialog >
+
+    <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+                <DialogTitle>Edit Account</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div>
+                    <Label>Account Name</Label>
+                    <Input className="mt-1.5" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="Account name" />
+                </div>
+                <div>
+                    <Label className="flex items-center gap-2">
+                        Priority
+                        <span className="text-xs font-normal text-muted-foreground ml-auto">(Lower = Higher Priority)</span>
+                    </Label>
+                    <Input
+                        type="number"
+                        className="mt-1.5"
+                        value={editForm.priority}
+                        onChange={(e) => setEditForm({ ...editForm, priority: parseInt(e.target.value) || 0 })}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                        Priority 0 is used first. Higher numbers (1, 2...) are backups.
+                    </p>
+                </div>
+                <div className="flex items-center justify-between">
+                    <Label>Enabled</Label>
+                    <Switch checked={editForm.enabled} onCheckedChange={(checked: boolean) => setEditForm({ ...editForm, enabled: checked })} />
+                </div>
+
+                {/* Quotas Section */}
+                <div className="pt-3 border-t">
+                    <Label className="flex items-center gap-2 mb-3"><Clock className="w-4 h-4" /> Quotas & Limits</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                        {(['minute', 'hour', 'day', 'month'] as QuotaPeriod[]).map((period) => {
+                            const tier = editForm.quotas.find(q => q.period === period);
+                            const isEnabled = !!tier;
+                            return (
+                                <div key={period} className="p-2 border rounded-md bg-slate-50 dark:bg-slate-900">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <Label className="text-xs capitalize font-semibold">{period}</Label>
+                                        <Switch
+                                            checked={isEnabled}
+                                            onCheckedChange={(checked) => {
+                                                let newQuotas = [...editForm.quotas];
+                                                if (checked) {
+                                                    if (!newQuotas.find(q => q.period === period)) {
+                                                        newQuotas.push({ period, tokenLimit: 100000, tokensUsed: 0, secondsUntilReset: 0, requestsUsed: 0 });
+                                                    }
+                                                } else {
+                                                    newQuotas = newQuotas.filter(q => q.period !== period);
+                                                }
+                                                setEditForm({ ...editForm, quotas: newQuotas });
+                                            }}
+                                            className="scale-75"
+                                        />
+                                    </div>
+                                    {isEnabled && (
+                                        <div>
+                                            <Label className="text-[10px] text-muted-foreground">Token Limit</Label>
+                                            <Input
+                                                type="number"
+                                                className="h-7 text-xs bg-white dark:bg-black"
+                                                value={tier?.tokenLimit?.toString() || ''}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value) || 0;
+                                                    setEditForm({
+                                                        ...editForm,
+                                                        quotas: editForm.quotas.map(q => q.period === period ? { ...q, tokenLimit: val } : q)
+                                                    });
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Models Section */}
+                <div className="pt-3 border-t">
+                    <Label className="flex items-center gap-2 mb-3"><Cpu className="w-4 h-4" /> Models</Label>
+
+                    {/* Language Models List */}
+                    <div className="mb-3">
+                        <Label className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider block">Language Models</Label>
+                        <div className="border rounded-md divide-y bg-slate-50/50 dark:bg-slate-900/20">
+                            {editForm.models.filter(m => m && Array.isArray(m.capabilities) && m.capabilities.some(c => String(c).toLowerCase() === 'llm')).map((model, idx) => (
+                                <div key={String(model.name || idx)} className="grid grid-cols-12 gap-2 p-2 items-center text-sm">
+                                    <div className="col-span-11 font-medium flex items-center gap-2">
+                                        <span>{String(model.name || 'Unknown')}</span>
+                                        {(model.input_token_cost !== undefined || model.output_token_cost !== undefined) && (
+                                            <Badge variant="outline" className="text-[10px] px-1 h-5 gap-1 font-normal text-muted-foreground">
+                                                <span>${model.input_token_cost || 0}</span>
+                                                <span>/</span>
+                                                <span>${model.output_token_cost || 0}</span>
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <div className="col-span-1 text-right">
+                                        <button onClick={() => removeModelFromEditForm(model)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+                            ))}
+                            {editForm.models.filter(m => m && Array.isArray(m.capabilities) && m.capabilities.some(c => String(c).toLowerCase() === 'llm')).length === 0 && (
+                                <div className="p-3 text-center text-xs text-muted-foreground italic">No language models configured</div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Embedding Models List */}
+                    <div className="mb-3">
+                        <Label className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider block">Embedding Models</Label>
+                        <div className="border rounded-md divide-y bg-slate-50/50 dark:bg-slate-900/20">
+                            {editForm.models.filter(m => m && Array.isArray(m.capabilities) && m.capabilities.some(c => String(c).toLowerCase() === 'embedding')).map((model, idx) => (
+                                <div key={String(model.name || idx)} className="grid grid-cols-12 gap-2 p-2 items-center text-sm">
+                                    <div className="col-span-11 font-medium flex items-center gap-2">
+                                        <span>{String(model.name || 'Unknown')}</span>
+                                        {(model.input_token_cost !== undefined || model.output_token_cost !== undefined) && (
+                                            <Badge variant="outline" className="text-[10px] px-1 h-5 gap-1 font-normal text-muted-foreground">
+                                                <span>${model.input_token_cost || 0}</span>
+                                                <span>/</span>
+                                                <span>${model.output_token_cost || 0}</span>
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <div className="col-span-1 text-right">
+                                        <button onClick={() => removeModelFromEditForm(model)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+                            ))}
+                            {editForm.models.filter(m => m && Array.isArray(m.capabilities) && m.capabilities.some(c => String(c).toLowerCase() === 'embedding')).length === 0 && (
+                                <div className="p-3 text-center text-xs text-muted-foreground italic">No embedding models configured</div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border space-y-2">
+                        <Label className="block text-xs font-medium text-muted-foreground">ADD NEW MODEL</Label>
+                        <div className="flex gap-2">
+                            <Input placeholder="Model Name (e.g., gpt-4o)" value={editForm.newModel} onChange={(e) => setEditForm({ ...editForm, newModel: e.target.value })} className="bg-white dark:bg-black h-8 flex-1" />
+                            <select
+                                className="h-8 rounded-md border border-input bg-white dark:bg-black px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                value={editForm.newModelType || 'llm'}
+                                onChange={(e) => setEditForm({ ...editForm, newModelType: e.target.value })}
+                            >
+                                <option value="llm">LLM</option>
+                                <option value="embedding">Embedding</option>
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <Label className="text-[10px] text-muted-foreground">Input Cost ($/1M)</Label>
+                                <Input type="number" placeholder="0.00" value={editForm.newModelInputCost} onChange={(e) => setEditForm({ ...editForm, newModelInputCost: e.target.value })} className="bg-white dark:bg-black h-8" />
+                            </div>
+                            <div>
+                                <Label className="text-[10px] text-muted-foreground">Output Cost ($/1M)</Label>
+                                <Input type="number" placeholder="0.00" value={editForm.newModelOutputCost} onChange={(e) => setEditForm({ ...editForm, newModelOutputCost: e.target.value })} className="bg-white dark:bg-black h-8" />
+                            </div>
+                        </div>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                const type = editForm.newModelType || 'llm';
+                                const model = {
+                                    id: editForm.newModel,
+                                    name: editForm.newModel,
+                                    capabilities: [type as any],
+                                    input_token_cost: parseFloat(editForm.newModelInputCost) || 0,
+                                    output_token_cost: parseFloat(editForm.newModelOutputCost) || 0
+                                };
+                                setEditForm({
+                                    ...editForm,
+                                    models: [...editForm.models, model],
+                                    newModel: '',
+                                    newModelInputCost: '',
+                                    newModelOutputCost: ''
+                                });
+                            }}
+                            disabled={!editForm.newModel.trim()}
+                            size="sm"
+                            className="w-full h-8"
+                        >
+                            <Plus className="w-4 h-4 mr-2" /> Add {editForm.newModelType === 'embedding' ? 'Embedding' : 'LLM'} Model
+                        </Button>
+                    </div>
+                </div>
+
+                {error && <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-500">{error}</div>}
+            </div>
+            <div className="flex gap-3 justify-end">
+                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSaveAccount} disabled={saving || !editForm.name}>{saving ? 'Saving...' : 'Save Changes'}</Button>
+            </div>
+        </DialogContent>
+    </Dialog>
+        </div >
     );
 }
