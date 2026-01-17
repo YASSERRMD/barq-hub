@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard, color: "text-blue-500" },
     { name: "Providers", href: "/providers", icon: Cpu, color: "text-violet-500" },
-    { name: "Applications", href: "/applications", icon: Key, color: "text-emerald-500" },
+    { name: "API Keys", href: "/api-keys", icon: Key, color: "text-emerald-500" },
     { name: "Playground", href: "/playground", icon: FlaskConical, color: "text-amber-500" },
     { name: "Billing", href: "/billing", icon: Receipt, color: "text-pink-500" },
     { name: "Audit Logs", href: "/audit", icon: FileText, color: "text-cyan-500" },
