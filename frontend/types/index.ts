@@ -30,6 +30,8 @@ export interface ProviderModel {
     id: string;
     name: string;
     capabilities: string[];
+    input_token_cost?: number;
+    output_token_cost?: number;
 }
 
 export interface ProviderQuota {

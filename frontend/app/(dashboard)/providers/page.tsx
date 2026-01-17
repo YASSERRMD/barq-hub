@@ -125,6 +125,7 @@ export default function ProvidersPage() {
         newModel: '',
         newModelInputCost: '',
         newModelOutputCost: '',
+        newModelType: 'llm',
     });
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/v1';
@@ -787,6 +788,7 @@ export default function ProvidersPage() {
                             onClick={() => {
                                 const type = newAccount.newModelType || 'llm';
                                 const model = {
+                                    id: newAccount.newModel, // Use name as specific ID for new models
                                     name: newAccount.newModel,
                                     capabilities: [type], // Use selected type
                                     input_token_cost: parseFloat(newAccount.newModelInputCost) || 0,
@@ -1166,6 +1168,7 @@ export default function ProvidersPage() {
                                     onClick={() => {
                                         const type = editForm.newModelType || 'llm';
                                         const model = {
+                                            id: editForm.newModel,
                                             name: editForm.newModel,
                                             capabilities: [type],
                                             input_token_cost: parseFloat(editForm.newModelInputCost) || 0,
