@@ -1,24 +1,33 @@
 # BARQ HUB
 
-**AI Management Console**
+AI Management Console
 
-Open-source console for managing LLM providers, vector databases, users, and more.
+## Overview
+
+BARQ HUB is an open-source console for managing LLM providers, vector databases, users, and system resources.
 
 ## Features
 
-- **Dashboard** - Metrics, charts, system health
-- **LLM Providers** - OpenAI, Anthropic, Google, Mistral, Groq, etc.
-- **Vector Databases** - Qdrant, Pinecone, Weaviate, Chroma
-- **Playground** - Test prompts live
-- **Billing** - Cost tracking, budgets
-- **Audit Logs** - Searchable logs with export
-- **Users & Roles** - RBAC management
-- **System Health** - Status monitoring
-- **Dark/Light Mode** - Theme switching
+| Module | Description |
+|--------|-------------|
+| Dashboard | System overview and metrics |
+| Providers | LLM provider management |
+| Vector DBs | Vector database configuration |
+| Playground | Prompt testing interface |
+| Billing | Cost tracking and budgets |
+| Audit Logs | Activity logging and export |
+| Users | User account management |
+| Roles | RBAC permission management |
+| Health | System status monitoring |
+| Settings | Application preferences |
 
-## Quick Start
+## Requirements
 
-### Docker (Recommended)
+- Docker and Docker Compose
+- Node.js 20+ (for local development)
+- Rust 1.75+ (for backend development)
+
+## Installation
 
 ```bash
 git clone https://github.com/YASSERRMD/barq-hub.git
@@ -27,15 +36,17 @@ cp .env.example .env
 docker-compose up -d --build
 ```
 
+## Services
+
 | Service | Port |
 |---------|------|
-| Frontend | http://localhost:4001 |
-| Backend | http://localhost:4000 |
+| Frontend | 4001 |
+| Backend | 4000 |
 | PostgreSQL | 5433 |
 | Redis | 6380 |
 | Qdrant | 6335 |
 
-### Local Development
+## Development
 
 ```bash
 # Start databases
@@ -50,10 +61,10 @@ cd frontend && npm install && npm run dev
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind, Shadcn/ui
-- **Backend**: Rust, Axum, SQLx
-- **Database**: PostgreSQL, Redis, Qdrant
+- Frontend: Next.js 14, TypeScript, Tailwind CSS, Shadcn/ui
+- Backend: Rust, Axum, SQLx
+- Database: PostgreSQL, Redis, Qdrant
 
 ## License
 
-MIT License
+MIT
