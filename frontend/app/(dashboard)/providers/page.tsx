@@ -567,7 +567,13 @@ export default function ProvidersPage() {
                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(account)} title="Edit account">
                             <Settings className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { setAccountToDelete({ id: account.id, name: account.name }); setDeleteConfirmOpen(true); }} title="Delete account">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            onClick={() => { setAccountToDelete({ id: account.id, name: account.name }); setDeleteConfirmOpen(true); }}
+                            title="Delete account"
+                        >
                             <Trash2 className="w-4 h-4" />
                         </Button>
                     </div>
