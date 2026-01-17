@@ -342,6 +342,7 @@ export default function ProvidersPage() {
                 newModel: '',
                 newModelInputCost: '',
                 newModelOutputCost: '',
+                newModelType: 'llm',
             });
 
             setSuccessMessage(`Account "${newAccountData.name}" created successfully!`);
@@ -398,6 +399,7 @@ export default function ProvidersPage() {
         newModel: '',
         newModelInputCost: '',
         newModelOutputCost: '',
+        newModelType: 'llm',
     });
     const [saving, setSaving] = useState(false);
     const [newModelCapabilities, setNewModelCapabilities] = useState<ModelCapability[]>(['llm']);
@@ -413,6 +415,7 @@ export default function ProvidersPage() {
             newModel: '',
             newModelInputCost: '',
             newModelOutputCost: '',
+            newModelType: 'llm',
         });
         setEditDialogOpen(true);
     };
@@ -790,7 +793,7 @@ export default function ProvidersPage() {
                                 const model = {
                                     id: newAccount.newModel, // Use name as specific ID for new models
                                     name: newAccount.newModel,
-                                    capabilities: [type], // Use selected type
+                                    capabilities: [type as any], // Use selected type
                                     input_token_cost: parseFloat(newAccount.newModelInputCost) || 0,
                                     output_token_cost: parseFloat(newAccount.newModelOutputCost) || 0
                                 };
@@ -1170,7 +1173,7 @@ export default function ProvidersPage() {
                                         const model = {
                                             id: editForm.newModel,
                                             name: editForm.newModel,
-                                            capabilities: [type],
+                                            capabilities: [type as any],
                                             input_token_cost: parseFloat(editForm.newModelInputCost) || 0,
                                             output_token_cost: parseFloat(editForm.newModelOutputCost) || 0
                                         };
