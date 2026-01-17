@@ -701,8 +701,19 @@ export default function ProvidersPage() {
                 )}
 
                 <div>
-                    <Label>Priority</Label>
-                    <Input type="number" className="mt-1.5" value={newAccount.priority} onChange={(e) => setNewAccount({ ...newAccount, priority: parseInt(e.target.value) || 0 })} />
+                    <Label className="flex items-center gap-2">
+                        Priority
+                        <span className="text-xs font-normal text-muted-foreground ml-auto">(Lower = Higher Priority)</span>
+                    </Label>
+                    <Input
+                        type="number"
+                        className="mt-1.5"
+                        value={newAccount.priority}
+                        onChange={(e) => setNewAccount({ ...newAccount, priority: parseInt(e.target.value) || 0 })}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                        Priority 0 is used first. Higher numbers (1, 2...) are backups.
+                    </p>
                 </div>
 
                 <div className="pt-4 border-t">
@@ -1040,8 +1051,19 @@ export default function ProvidersPage() {
                             <Input className="mt-1.5" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="Account name" />
                         </div>
                         <div>
-                            <Label>Priority</Label>
-                            <Input type="number" className="mt-1.5" value={editForm.priority} onChange={(e) => setEditForm({ ...editForm, priority: parseInt(e.target.value) || 0 })} />
+                            <Label className="flex items-center gap-2">
+                                Priority
+                                <span className="text-xs font-normal text-muted-foreground ml-auto">(Lower = Higher Priority)</span>
+                            </Label>
+                            <Input
+                                type="number"
+                                className="mt-1.5"
+                                value={editForm.priority}
+                                onChange={(e) => setEditForm({ ...editForm, priority: parseInt(e.target.value) || 0 })}
+                            />
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                                Priority 0 is used first. Higher numbers (1, 2...) are backups.
+                            </p>
                         </div>
                         <div className="flex items-center justify-between">
                             <Label>Enabled</Label>
