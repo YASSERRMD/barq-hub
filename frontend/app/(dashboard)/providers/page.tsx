@@ -703,9 +703,12 @@ export default function ProvidersPage() {
 
                 <div className="pt-4 border-t">
                     <Label className="flex items-center gap-2 mb-3"><Cpu className="w-4 h-4" /> Models</Label>
+
+                    {/* Language Models List */}
                     <div className="mb-3">
-                        <div className="border rounded-md divide-y max-h-40 overflow-y-auto">
-                            {newAccount.models.map((model, idx) => (
+                        <Label className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider block">Language Models</Label>
+                        <div className="border rounded-md divide-y max-h-40 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/20">
+                            {newAccount.models.filter(m => m.capabilities.some(c => String(c).toLowerCase() === 'llm')).map((model, idx) => (
                                 <div key={String(model.name || idx)} className="grid grid-cols-12 gap-2 p-2 items-center text-sm">
                                     <div className="col-span-11 font-medium flex items-center gap-2">
                                         <span>{String(model.name || 'Unknown')}</span>
@@ -722,14 +725,53 @@ export default function ProvidersPage() {
                                     </div>
                                 </div>
                             ))}
-                            {newAccount.models.length === 0 && (
-                                <div className="p-3 text-center text-xs text-muted-foreground italic">No models configured</div>
+                            {newAccount.models.filter(m => m.capabilities.some(c => String(c).toLowerCase() === 'llm')).length === 0 && (
+                                <div className="p-3 text-center text-xs text-muted-foreground italic">No language models configured</div>
                             )}
                         </div>
                     </div>
+
+                    {/* Embedding Models List */}
+                    <div className="mb-3">
+                        <Label className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider block">Embedding Models</Label>
+                        <div className="border rounded-md divide-y max-h-40 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/20">
+                            {newAccount.models.filter(m => m.capabilities.some(c => String(c).toLowerCase() === 'embedding')).map((model, idx) => (
+                                <div key={String(model.name || idx)} className="grid grid-cols-12 gap-2 p-2 items-center text-sm">
+                                    <div className="col-span-11 font-medium flex items-center gap-2">
+                                        <span>{String(model.name || 'Unknown')}</span>
+                                        {(model.input_token_cost !== undefined || model.output_token_cost !== undefined) && (
+                                            <Badge variant="outline" className="text-[10px] px-1 h-5 gap-1 font-normal text-muted-foreground">
+                                                <span>${model.input_token_cost || 0}</span>
+                                                <span>/</span>
+                                                <span>${model.output_token_cost || 0}</span>
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <div className="col-span-1 text-right">
+                                        <button onClick={() => removeModelFromAddForm(model)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+                            ))}
+                            {newAccount.models.filter(m => m.capabilities.some(c => String(c).toLowerCase() === 'embedding')).length === 0 && (
+                                <div className="p-3 text-center text-xs text-muted-foreground italic">No embedding models configured</div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Add New Model Form */}
                     <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border space-y-2">
                         <Label className="block text-xs font-medium text-muted-foreground">ADD NEW MODEL</Label>
-                        <Input placeholder="Model Name (e.g., gpt-4o)" value={newAccount.newModel} onChange={(e) => setNewAccount({ ...newAccount, newModel: e.target.value })} className="bg-white dark:bg-black h-8" />
+                        <div className="flex gap-2">
+                            <Input placeholder="Model Name (e.g., gpt-4o)" value={newAccount.newModel} onChange={(e) => setNewAccount({ ...newAccount, newModel: e.target.value })} className="bg-white dark:bg-black h-8 flex-1" />
+                            <select
+                                className="h-8 rounded-md border border-input bg-white dark:bg-black px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                value={newAccount.newModelType || 'llm'}
+                                onChange={(e) => setNewAccount({ ...newAccount, newModelType: e.target.value })}
+                            >
+                                <option value="llm">LLM</option>
+                                <option value="embedding">Embedding</option>
+                            </select>
+                        </div>
                         <div className="grid grid-cols-2 gap-2">
                             <div>
                                 <Label className="text-[10px] text-muted-foreground">Input Cost ($/1M)</Label>
@@ -740,7 +782,30 @@ export default function ProvidersPage() {
                                 <Input type="number" placeholder="0.00" value={newAccount.newModelOutputCost} onChange={(e) => setNewAccount({ ...newAccount, newModelOutputCost: e.target.value })} className="bg-white dark:bg-black h-8" />
                             </div>
                         </div>
-                        <Button type="button" onClick={addModelToAddForm} disabled={!newAccount.newModel.trim()} size="sm" className="w-full h-8"><Plus className="w-4 h-4 mr-2" /> Add Model</Button>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                const type = newAccount.newModelType || 'llm';
+                                const model = {
+                                    name: newAccount.newModel,
+                                    capabilities: [type], // Use selected type
+                                    input_token_cost: parseFloat(newAccount.newModelInputCost) || 0,
+                                    output_token_cost: parseFloat(newAccount.newModelOutputCost) || 0
+                                };
+                                setNewAccount({
+                                    ...newAccount,
+                                    models: [...newAccount.models, model],
+                                    newModel: '',
+                                    newModelInputCost: '',
+                                    newModelOutputCost: ''
+                                });
+                            }}
+                            disabled={!newAccount.newModel.trim()}
+                            size="sm"
+                            className="w-full h-8"
+                        >
+                            <Plus className="w-4 h-4 mr-2" /> Add {newAccount.newModelType === 'embedding' ? 'Embedding' : 'LLM'} Model
+                        </Button>
                     </div>
                 </div>
 
@@ -749,6 +814,8 @@ export default function ProvidersPage() {
                         <Zap className="w-4 h-4 text-primary" />
                         <h4 className="font-medium">Quota Limits</h4>
                     </div>
+                    {/* ... Quotas content ... */}
+
                     <div className="space-y-4">
                         {(['minute', 'hour', 'day', 'month'] as QuotaPeriod[]).map(period => (
                             <div key={period} className={`p-4 rounded-lg border ${newAccount.quotas[period].enabled ? 'border-primary/30 bg-primary/5' : 'border-border'}`}>
