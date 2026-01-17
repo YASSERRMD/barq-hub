@@ -1083,9 +1083,11 @@ export default function ProvidersPage() {
                         {/* Models Section */}
                         <div className="pt-3 border-t">
                             <Label className="flex items-center gap-2 mb-3"><Cpu className="w-4 h-4" /> Models</Label>
+
+                            {/* Language Models List */}
                             <div className="mb-3">
-                                <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Language Models</h4>
-                                <div className="border rounded-md divide-y">
+                                <Label className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider block">Language Models</Label>
+                                <div className="border rounded-md divide-y bg-slate-50/50 dark:bg-slate-900/20">
                                     {editForm.models.filter(m => m && Array.isArray(m.capabilities) && m.capabilities.some(c => String(c).toLowerCase() === 'llm')).map((model, idx) => (
                                         <div key={String(model.name || idx)} className="grid grid-cols-12 gap-2 p-2 items-center text-sm">
                                             <div className="col-span-11 font-medium flex items-center gap-2">
@@ -1103,11 +1105,52 @@ export default function ProvidersPage() {
                                             </div>
                                         </div>
                                     ))}
+                                    {editForm.models.filter(m => m && Array.isArray(m.capabilities) && m.capabilities.some(c => String(c).toLowerCase() === 'llm')).length === 0 && (
+                                        <div className="p-3 text-center text-xs text-muted-foreground italic">No language models configured</div>
+                                    )}
                                 </div>
                             </div>
+
+                            {/* Embedding Models List */}
+                            <div className="mb-3">
+                                <Label className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider block">Embedding Models</Label>
+                                <div className="border rounded-md divide-y bg-slate-50/50 dark:bg-slate-900/20">
+                                    {editForm.models.filter(m => m && Array.isArray(m.capabilities) && m.capabilities.some(c => String(c).toLowerCase() === 'embedding')).map((model, idx) => (
+                                        <div key={String(model.name || idx)} className="grid grid-cols-12 gap-2 p-2 items-center text-sm">
+                                            <div className="col-span-11 font-medium flex items-center gap-2">
+                                                <span>{String(model.name || 'Unknown')}</span>
+                                                {(model.input_token_cost !== undefined || model.output_token_cost !== undefined) && (
+                                                    <Badge variant="outline" className="text-[10px] px-1 h-5 gap-1 font-normal text-muted-foreground">
+                                                        <span>${model.input_token_cost || 0}</span>
+                                                        <span>/</span>
+                                                        <span>${model.output_token_cost || 0}</span>
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <div className="col-span-1 text-right">
+                                                <button onClick={() => removeModelFromEditForm(model)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {editForm.models.filter(m => m && Array.isArray(m.capabilities) && m.capabilities.some(c => String(c).toLowerCase() === 'embedding')).length === 0 && (
+                                        <div className="p-3 text-center text-xs text-muted-foreground italic">No embedding models configured</div>
+                                    )}
+                                </div>
+                            </div>
+
                             <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border space-y-2">
                                 <Label className="block text-xs font-medium text-muted-foreground">ADD NEW MODEL</Label>
-                                <Input placeholder="Model Name (e.g., gpt-4o)" value={editForm.newModel} onChange={(e) => setEditForm({ ...editForm, newModel: e.target.value })} className="bg-white dark:bg-black h-8" />
+                                <div className="flex gap-2">
+                                    <Input placeholder="Model Name (e.g., gpt-4o)" value={editForm.newModel} onChange={(e) => setEditForm({ ...editForm, newModel: e.target.value })} className="bg-white dark:bg-black h-8 flex-1" />
+                                    <select
+                                        className="h-8 rounded-md border border-input bg-white dark:bg-black px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                        value={editForm.newModelType || 'llm'}
+                                        onChange={(e) => setEditForm({ ...editForm, newModelType: e.target.value })}
+                                    >
+                                        <option value="llm">LLM</option>
+                                        <option value="embedding">Embedding</option>
+                                    </select>
+                                </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div>
                                         <Label className="text-[10px] text-muted-foreground">Input Cost ($/1M)</Label>
@@ -1118,7 +1161,30 @@ export default function ProvidersPage() {
                                         <Input type="number" placeholder="0.00" value={editForm.newModelOutputCost} onChange={(e) => setEditForm({ ...editForm, newModelOutputCost: e.target.value })} className="bg-white dark:bg-black h-8" />
                                     </div>
                                 </div>
-                                <Button type="button" onClick={addModelToEditForm} disabled={!editForm.newModel.trim()} size="sm" className="w-full h-8"><Plus className="w-4 h-4 mr-2" /> Add Model</Button>
+                                <Button
+                                    type="button"
+                                    onClick={() => {
+                                        const type = editForm.newModelType || 'llm';
+                                        const model = {
+                                            name: editForm.newModel,
+                                            capabilities: [type],
+                                            input_token_cost: parseFloat(editForm.newModelInputCost) || 0,
+                                            output_token_cost: parseFloat(editForm.newModelOutputCost) || 0
+                                        };
+                                        setEditForm({
+                                            ...editForm,
+                                            models: [...editForm.models, model],
+                                            newModel: '',
+                                            newModelInputCost: '',
+                                            newModelOutputCost: ''
+                                        });
+                                    }}
+                                    disabled={!editForm.newModel.trim()}
+                                    size="sm"
+                                    className="w-full h-8"
+                                >
+                                    <Plus className="w-4 h-4 mr-2" /> Add {editForm.newModelType === 'embedding' ? 'Embedding' : 'LLM'} Model
+                                </Button>
                             </div>
                         </div>
 
