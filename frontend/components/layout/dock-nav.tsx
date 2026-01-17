@@ -18,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Providers", href: "/providers", icon: Cpu },
-    { name: "Applications", href: "/applications", icon: Key },
+    { name: "API Keys", href: "/api-keys", icon: Key },
     { name: "Playground", href: "/playground", icon: FlaskConical },
     { name: "Billing", href: "/billing", icon: Receipt },
     { name: "Audit", href: "/audit", icon: FileText },
