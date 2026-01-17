@@ -868,11 +868,24 @@ export default function ProvidersPage() {
                 </div>
             )}
 
+            <div className="flex flex-col gap-2">
+                <h1 className="text-3xl font-bold tracking-tight">Providers</h1>
+                <p className="text-muted-foreground">
+                    Manage your AI provider accounts, quotas, and model configurations.
+                </p>
+
+                <Alert className="bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300">
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Smart Fallback & Rotation</AlertTitle>
+                    <AlertDescription>
+                        The system automatically routes requests based on account <strong>Priority</strong> (Lower value = Higher priority).
+                        If your primary account (e.g. Priority 0) runs out of quota or fails, the system seamlessly falls back to the next available account (Priority 1, 2, etc.).
+                        When the primary account's quota resets, it will be automatically restored as the main provider.
+                    </AlertDescription>
+                </Alert>
+            </div>
             <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">Providers</h1>
-                    <p className="text-muted-foreground">Configure your LLM infrastructure</p>
-                </div>
+                <div /> {/* Empty div to balance the flex layout if needed, or remove if not */}
                 <Button variant="outline" onClick={fetchProvidersAndAccounts} disabled={fetchingProviders}>
                     <RefreshCw className={`w-4 h-4 mr-2 ${fetchingProviders ? 'animate-spin' : ''}`} />
                     Refresh
