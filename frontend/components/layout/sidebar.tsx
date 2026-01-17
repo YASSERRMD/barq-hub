@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import {
     LayoutDashboard,
     Cpu,
-    Database,
+    Key,
     FlaskConical,
     Receipt,
     FileText,
@@ -15,82 +15,99 @@ import {
     Activity,
     Settings,
     Zap,
-    ChevronLeft,
-    ChevronRight,
+    Menu,
+    X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navigation = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Providers", href: "/providers", icon: Cpu },
-    { name: "Vector DBs", href: "/vectordbs", icon: Database },
-    { name: "Playground", href: "/playground", icon: FlaskConical },
-    { name: "Billing", href: "/billing", icon: Receipt },
-    { name: "Audit Logs", href: "/audit", icon: FileText },
-    { name: "Users", href: "/users", icon: Users },
-    { name: "Roles", href: "/roles", icon: Shield },
-    { name: "Health", href: "/health", icon: Activity },
-    { name: "Settings", href: "/settings", icon: Settings },
+    { name: "Dashboard", href: "/", icon: LayoutDashboard, color: "text-blue-500" },
+    { name: "Providers", href: "/providers", icon: Cpu, color: "text-violet-500" },
+    { name: "Applications", href: "/applications", icon: Key, color: "text-emerald-500" },
+    { name: "Playground", href: "/playground", icon: FlaskConical, color: "text-amber-500" },
+    { name: "Billing", href: "/billing", icon: Receipt, color: "text-pink-500" },
+    { name: "Audit Logs", href: "/audit", icon: FileText, color: "text-cyan-500" },
+    { name: "Users", href: "/users", icon: Users, color: "text-orange-500" },
+    { name: "Roles", href: "/roles", icon: Shield, color: "text-indigo-500" },
+    { name: "Health", href: "/health", icon: Activity, color: "text-green-500" },
+    { name: "Settings", href: "/settings", icon: Settings, color: "text-slate-500" },
 ];
 
 export function Sidebar() {
     const pathname = usePathname();
-    const [collapsed, setCollapsed] = useState(false);
+    const [expanded, setExpanded] = useState(true);
 
     return (
         <TooltipProvider delayDuration={0}>
             <aside
                 className={cn(
-                    "flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out",
-                    collapsed ? "w-16" : "w-64"
+                    "fixed left-0 top-0 z-50 flex flex-col h-screen border-r border-border/40 bg-gradient-to-b from-background via-background to-muted/20 transition-all duration-300 ease-out",
+                    expanded ? "w-56" : "w-[68px]"
                 )}
             >
-                {/* Logo */}
-                <div className="flex items-center h-16 px-4 border-b border-sidebar-border">
+                {/* Header */}
+                <div className="flex items-center justify-between h-14 px-3 border-b border-border/40">
                     <Link href="/" className="flex items-center gap-2 overflow-hidden">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400">
+                        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 via-blue-600 to-cyan-500 shadow-lg shadow-violet-500/20">
                             <Zap className="w-5 h-5 text-white" />
                         </div>
-                        {!collapsed && (
-                            <div className="flex flex-col">
-                                <span className="text-lg font-bold text-sidebar-foreground tracking-tight">
-                                    BARQ HUB
-                                </span>
-                                <span className="text-[10px] text-muted-foreground -mt-1">
-                                    SYNAPSE Brain Console
-                                </span>
-                            </div>
+                        {expanded && (
+                            <span className="text-lg font-bold bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent">
+                                BARQ
+                            </span>
                         )}
                     </Link>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setExpanded(!expanded)}
+                        className="h-8 w-8 shrink-0"
+                    >
+                        {expanded ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+                    </Button>
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+                <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
                     {navigation.map((item) => {
                         const isActive = pathname === item.href;
-                        const NavItem = (
+                        const NavLink = (
                             <Link
                                 key={item.name}
                                 href={item.href}
                                 className={cn(
-                                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                                    "group flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                                     isActive
-                                        ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                                        : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                                        ? "bg-primary/10 text-primary"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                                 )}
                             >
-                                <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive && "text-blue-500")} />
-                                {!collapsed && <span>{item.name}</span>}
+                                <div className={cn(
+                                    "flex items-center justify-center w-8 h-8 rounded-lg transition-all",
+                                    isActive
+                                        ? "bg-primary/15"
+                                        : "bg-transparent group-hover:bg-muted"
+                                )}>
+                                    <item.icon className={cn(
+                                        "w-[18px] h-[18px] transition-colors",
+                                        isActive ? item.color : ""
+                                    )} />
+                                </div>
+                                {expanded && (
+                                    <span className="truncate">{item.name}</span>
+                                )}
+                                {isActive && expanded && (
+                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                                )}
                             </Link>
                         );
 
-                        if (collapsed) {
+                        if (!expanded) {
                             return (
                                 <Tooltip key={item.name}>
-                                    <TooltipTrigger asChild>{NavItem}</TooltipTrigger>
+                                    <TooltipTrigger asChild>{NavLink}</TooltipTrigger>
                                     <TooltipContent side="right" className="font-medium">
                                         {item.name}
                                     </TooltipContent>
@@ -98,30 +115,19 @@ export function Sidebar() {
                             );
                         }
 
-                        return NavItem;
+                        return NavLink;
                     })}
                 </nav>
 
-                <Separator />
-
-                {/* Collapse Toggle */}
-                <div className="p-2">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setCollapsed(!collapsed)}
-                        className="w-full justify-center"
-                    >
-                        {collapsed ? (
-                            <ChevronRight className="w-4 h-4" />
-                        ) : (
-                            <>
-                                <ChevronLeft className="w-4 h-4 mr-2" />
-                                <span>Collapse</span>
-                            </>
-                        )}
-                    </Button>
-                </div>
+                {/* Footer */}
+                {expanded && (
+                    <div className="px-3 py-3 border-t border-border/40">
+                        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/40">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-xs text-muted-foreground">All systems online</span>
+                        </div>
+                    </div>
+                )}
             </aside>
         </TooltipProvider>
     );
