@@ -43,7 +43,6 @@ import {
     PlayCircle,
     Copy,
     ArrowUpDown,
-    ArrowUpDown,
     Info,
     Search
 } from 'lucide-react';
