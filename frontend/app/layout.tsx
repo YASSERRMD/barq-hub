@@ -11,6 +11,12 @@ export const metadata: Metadata = {
   description: "Enterprise-grade AI Orchestration Platform",
   icons: {
     icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png",
+    other: {
+      rel: "apple-touch-icon-precomposed",
+      url: "/apple-icon.png",
+    },
   },
 };
 
