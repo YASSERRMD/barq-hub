@@ -15,11 +15,15 @@ export interface AuthResponse {
 }
 
 // Provider types
-export interface Provider {
+export interface ProviderDefinition {
     id: string;
     name: string;
-    providerType: "llm" | "embedding" | "both";
-    defaultModels: ProviderModel[];
+    category: "llm_embedding" | "vector_db";
+    provider_type: "llm" | "embedding" | "both" | "vector_db";
+    requires_azure_config: boolean;
+    requires_aws_config: boolean;
+    default_models: ProviderModel[];
+    supported_quota_periods: string[];
 }
 
 export interface ProviderModel {
@@ -28,12 +32,33 @@ export interface ProviderModel {
     capabilities: string[];
 }
 
+export interface ProviderQuota {
+    requests_per_minute?: number;
+    requests_per_hour?: number;
+    requests_per_day?: number;
+    requests_per_month?: number;
+    tokens_per_minute?: number;
+    tokens_per_hour?: number;
+    tokens_per_day?: number;
+    tokens_per_month?: number;
+}
+
+export interface ProviderPricing {
+    input_token_price: number; // Price per 1M tokens
+    output_token_price: number; // Price per 1M tokens
+    currency: string;
+}
+
 export interface ProviderAccount {
     id: string;
     providerId: string;
     name: string;
+    type: "api_key" | "azure" | "aws";
     enabled: boolean;
     isDefault: boolean;
+    priority: number;
+    quotas?: ProviderQuota;
+    pricing?: ProviderPricing;
     models: ProviderModel[];
     createdAt: string;
     updatedAt: string;

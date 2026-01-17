@@ -1,93 +1,122 @@
 "use client";
 
-import { Activity, CheckCircle, XCircle, Clock, Cpu, Database, Server } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-
-const services = [
-    { name: "Backend API", status: "healthy", uptime: "99.9%", latency: "12ms", icon: Server },
-    { name: "PostgreSQL", status: "healthy", uptime: "99.9%", latency: "3ms", icon: Database },
-    { name: "Redis", status: "healthy", uptime: "100%", latency: "1ms", icon: Database },
-    { name: "Qdrant", status: "healthy", uptime: "99.8%", latency: "8ms", icon: Database },
-    { name: "OpenAI", status: "healthy", uptime: "99.5%", latency: "245ms", icon: Cpu },
-    { name: "Anthropic", status: "degraded", uptime: "98.2%", latency: "520ms", icon: Cpu },
-];
+import { useState, useEffect } from "react";
+import { Activity, CheckCircle, AlertTriangle, XCircle, Server, Database, Globe, Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { healthApi } from "@/lib/api";
+import { toast } from "sonner";
+import { HealthStatus } from "@/types";
 
 export default function HealthPage() {
-    const healthyCount = services.filter(s => s.status === "healthy").length;
+    const [health, setHealth] = useState<HealthStatus | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchHealth = async () => {
+            try {
+                const data = await healthApi.check();
+                setHealth(data);
+            } catch (error) {
+                console.error("Failed to load health status", error);
+
+                // Fallback for initial view if API fails (so page isn't broken during dev)
+                // Remove this in pure production if strict error handling is desired
+                toast.error("Failed to fetch real-time health metrics");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchHealth();
+    }, []);
+
+    const getIcon = (name: string) => {
+        if (name.toLowerCase().includes("database")) return Database;
+        if (name.toLowerCase().includes("redis")) return Server;
+        if (name.toLowerCase().includes("llm")) return Activity;
+        return Globe;
+    };
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-[50vh]"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>;
+    }
+
+    // Use API data if available, otherwise show error state
+    const services = health?.services || [];
+    const overallStatus = health?.status || "unknown";
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">System Health</h1>
-                    <p className="text-muted-foreground">Monitor service status and metrics</p>
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold tracking-tight mb-2">System Health</h1>
+                <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${overallStatus === 'healthy' ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
+                    <span className={`${overallStatus === 'healthy' ? 'text-green-600' : 'text-red-500'} font-medium capitalize`}>
+                        System {overallStatus}
+                    </span>
+                    <span className="text-muted-foreground ml-2 text-sm">Version: {health?.version || '0.0.0'}</span>
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Overall Status</CardTitle>
-                        <Activity className="h-4 w-4 text-green-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-500">Healthy</div>
-                        <p className="text-xs text-muted-foreground">{healthyCount}/{services.length} services operational</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Uptime</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">99.7%</div>
-                        <p className="text-xs text-muted-foreground">Last 30 days</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Avg Latency</CardTitle>
-                        <Activity className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">132ms</div>
-                        <p className="text-xs text-muted-foreground">Across all services</p>
-                    </CardContent>
-                </Card>
+            <div className="grid gap-6 md:grid-cols-2">
+                {services.length === 0 ? (
+                    <div className="col-span-2 text-center py-12 text-muted-foreground border border-dashed rounded-lg">
+                        <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        No services detected or connection failed
+                    </div>
+                ) : (
+                    services.map((service) => {
+                        const Icon = getIcon(service.name);
+                        return (
+                            <Card key={service.name} className="overflow-hidden">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-muted/20">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-lg bg-background border">
+                                            <Icon className="h-5 w-5 text-muted-foreground" />
+                                        </div>
+                                        <CardTitle className="text-base font-semibold">{service.name}</CardTitle>
+                                    </div>
+                                    <Badge variant={service.status === "up" ? "default" : "destructive"} className={
+                                        service.status === "up"
+                                            ? "bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/20"
+                                            : "bg-red-500/10 text-red-600 border-red-500/20"
+                                    }>
+                                        {service.status}
+                                    </Badge>
+                                </CardHeader>
+                                <CardContent className="pt-6 grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Status</p>
+                                        <p className="text-xl font-bold capitalize">{service.status}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Latency</p>
+                                        <p className="text-xl font-bold font-mono">{service.latency ? `${service.latency}ms` : '-'}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        );
+                    })
+                )}
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Services</CardTitle>
-                    <CardDescription>Real-time status of all services</CardDescription>
+                    <CardTitle>Incidents</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    {services.map((service) => (
-                        <div key={service.name} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-                            <service.icon className="h-5 w-5 text-muted-foreground" />
-                            <div className="flex-1">
-                                <div className="flex items-center justify-between">
-                                    <span className="font-medium">{service.name}</span>
-                                    <div className="flex items-center gap-2">
-                                        {service.status === "healthy" ? (
-                                            <CheckCircle className="h-4 w-4 text-green-500" />
-                                        ) : (
-                                            <XCircle className="h-4 w-4 text-yellow-500" />
-                                        )}
-                                        <span className={service.status === "healthy" ? "text-green-500" : "text-yellow-500"}>
-                                            {service.status}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                                    <span>Uptime: {service.uptime}</span>
-                                    <span>Latency: {service.latency}</span>
-                                </div>
+                <CardContent>
+                    <div className="space-y-4">
+                        <div className="flex gap-4 items-start pb-4 border-b border-border/50">
+                            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                            <div>
+                                <p className="font-medium">Recent Check</p>
+                                <p className="text-sm text-muted-foreground">
+                                    System check initialized {health?.lastCheck ? formatDistanceToNow(new Date(health.lastCheck), { addSuffix: true }) : 'just now'}.
+                                </p>
                             </div>
                         </div>
-                    ))}
+                    </div>
                 </CardContent>
             </Card>
         </div>

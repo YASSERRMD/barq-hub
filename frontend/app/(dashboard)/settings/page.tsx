@@ -1,189 +1,239 @@
 "use client";
 
-import { Settings, Moon, Sun, Monitor, Bell, Shield, Key, Mail, Save } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { settingsApi } from "@/lib/api";
+import { toast } from "sonner";
+import { Settings, SmtpSettings } from "@/types";
 
 export default function SettingsPage() {
+    const [settings, setSettings] = useState<Settings | null>(null);
+    const [smtp, setSmtp] = useState<SmtpSettings | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const [settingsData, smtpData] = await Promise.all([
+                    settingsApi.get(),
+                    settingsApi.getSmtp()
+                ]);
+                setSettings(settingsData);
+                setSmtp(smtpData);
+            } catch (error) {
+                console.error("Failed to load settings", error);
+                toast.error("Failed to load settings");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadSettings();
+    }, []);
+
+    const handleSaveSettings = async () => {
+        if (!settings) return;
+        setSaving(true);
+        try {
+            await settingsApi.update(settings);
+            toast.success("Settings saved successfully");
+        } catch (error) {
+            toast.error("Failed to save settings");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleSaveSmtp = async () => {
+        if (!smtp) return;
+        setSaving(true);
+        try {
+            await settingsApi.updateSmtp(smtp);
+            toast.success("SMTP settings saved");
+        } catch (error) {
+            toast.error("Failed to save SMTP settings");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleTestSmtp = async () => {
+        const toastId = toast.loading("Testing SMTP connection...");
+        try {
+            await settingsApi.testSmtp();
+            toast.success("SMTP connection successful", { id: toastId });
+        } catch (error) {
+            toast.error("SMTP connection failed", { id: toastId });
+        }
+    };
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-[50vh]"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>;
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold">Settings</h1>
-                    <p className="text-muted-foreground">Manage your preferences</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+                    <p className="text-muted-foreground">Manage your application preferences</p>
                 </div>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-                {/* Appearance */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Sun className="h-4 w-4" />
-                            Appearance
-                        </CardTitle>
-                        <CardDescription>Customize the look and feel</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                                <Label>Theme</Label>
-                                <p className="text-xs text-muted-foreground">Select your preferred theme</p>
-                            </div>
-                            <div className="flex gap-1">
-                                <Button variant="outline" size="sm" className="h-8 px-2">
-                                    <Sun className="h-4 w-4" />
-                                </Button>
-                                <Button variant="outline" size="sm" className="h-8 px-2">
-                                    <Moon className="h-4 w-4" />
-                                </Button>
-                                <Button variant="outline" size="sm" className="h-8 px-2">
-                                    <Monitor className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+            <Tabs defaultValue="general" className="w-full">
+                <TabsList className="mb-4">
+                    <TabsTrigger value="general">General</TabsTrigger>
+                    <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                    <TabsTrigger value="smtp">SMTP Configuration</TabsTrigger>
+                    <TabsTrigger value="security">Security</TabsTrigger>
+                </TabsList>
 
-                {/* Notifications */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Bell className="h-4 w-4" />
-                            Notifications
-                        </CardTitle>
-                        <CardDescription>Configure notification preferences</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <Label className="text-sm">Email notifications</Label>
-                            <Switch />
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <Label className="text-sm">Budget alerts</Label>
-                            <Switch defaultChecked />
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <Label className="text-sm">Security alerts</Label>
-                            <Switch defaultChecked />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* SMTP Configuration */}
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Mail className="h-4 w-4" />
-                            SMTP Configuration
-                        </CardTitle>
-                        <CardDescription>Configure email server for notifications</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid gap-4 md:grid-cols-2">
+                <TabsContent value="general">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>General Settings</CardTitle>
+                            <CardDescription>Configure basic application settings.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label>SMTP Host</Label>
-                                <Input placeholder="smtp.example.com" />
+                                <Label>Organization Name</Label>
+                                <Input defaultValue="Acme Corp" disabled />
                             </div>
-                            <div className="space-y-2">
-                                <Label>SMTP Port</Label>
-                                <Input placeholder="587" type="number" />
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label>Budget Monthly Limit ($)</Label>
+                                    <p className="text-sm text-muted-foreground">Hard cap for spending alerts</p>
+                                </div>
+                                <Input
+                                    type="number"
+                                    className="w-[120px]"
+                                    value={settings?.budgetLimit || ""}
+                                    onChange={(e) => setSettings(prev => prev ? { ...prev, budgetLimit: parseFloat(e.target.value) } : null)}
+                                />
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button onClick={handleSaveSettings} disabled={saving}>
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                Save Changes
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="notifications">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Notification Preferences</CardTitle>
+                            <CardDescription>Choose what alerts you want to receive.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <Label>Email Notifications</Label>
+                                <Switch
+                                    checked={settings?.emailNotifications}
+                                    onCheckedChange={(c) => setSettings(prev => prev ? { ...prev, emailNotifications: c } : null)}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Label>Budget Alerts</Label>
+                                <Switch
+                                    checked={settings?.budgetAlerts}
+                                    onCheckedChange={(c) => setSettings(prev => prev ? { ...prev, budgetAlerts: c } : null)}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Label>Security Alerts</Label>
+                                <Switch
+                                    checked={settings?.securityAlerts}
+                                    onCheckedChange={(c) => setSettings(prev => prev ? { ...prev, securityAlerts: c } : null)}
+                                />
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button onClick={handleSaveSettings} disabled={saving}>
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                Save Changes
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="smtp">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>SMTP Server</CardTitle>
+                            <CardDescription>Configure email server for system notifications.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Host</Label>
+                                    <Input
+                                        value={smtp?.host || ""}
+                                        onChange={(e) => setSmtp(prev => prev ? { ...prev, host: e.target.value } : null)}
+                                        placeholder="smtp.example.com"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Port</Label>
+                                    <Input
+                                        value={smtp?.port || ""}
+                                        onChange={(e) => setSmtp(prev => prev ? { ...prev, port: parseInt(e.target.value) } : null)}
+                                        placeholder="587"
+                                    />
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <Label>Username</Label>
-                                <Input placeholder="your-email@example.com" />
+                                <Input
+                                    value={smtp?.username || ""}
+                                    onChange={(e) => setSmtp(prev => prev ? { ...prev, username: e.target.value } : null)}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label>Password</Label>
-                                <Input type="password" placeholder="••••••••" />
+                                <Input
+                                    type="password"
+                                    value={smtp?.password || ""}
+                                    onChange={(e) => setSmtp(prev => prev ? { ...prev, password: e.target.value } : null)}
+                                />
                             </div>
-                            <div className="space-y-2">
-                                <Label>From Email</Label>
-                                <Input placeholder="noreply@barq.hub" />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>From Email</Label>
+                                    <Input
+                                        value={smtp?.fromEmail || ""}
+                                        onChange={(e) => setSmtp(prev => prev ? { ...prev, fromEmail: e.target.value } : null)}
+                                        placeholder="noreply@barq.hub"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>From Name</Label>
+                                    <Input
+                                        value={smtp?.fromName || ""}
+                                        onChange={(e) => setSmtp(prev => prev ? { ...prev, fromName: e.target.value } : null)}
+                                        placeholder="BARQ System"
+                                    />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label>From Name</Label>
-                                <Input placeholder="BARQ HUB" />
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3 mt-4 pt-4 border-t">
-                            <div className="flex items-center gap-2">
-                                <Switch id="smtp-tls" defaultChecked />
-                                <Label htmlFor="smtp-tls" className="text-sm">Use TLS</Label>
-                            </div>
-                            <div className="flex-1" />
-                            <Button variant="outline" size="sm">Test Connection</Button>
-                            <Button size="sm" className="gap-2">
-                                <Save className="h-4 w-4" />
-                                Save SMTP Settings
+                        </CardContent>
+                        <CardFooter className="justify-between">
+                            <Button variant="outline" onClick={handleTestSmtp}>Test Connection</Button>
+                            <Button onClick={handleSaveSmtp} disabled={saving}>
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Save SMTP Settings"}
                             </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Security */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Shield className="h-4 w-4" />
-                            Security
-                        </CardTitle>
-                        <CardDescription>Manage security settings</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                                <Label>Two-factor authentication</Label>
-                                <p className="text-xs text-muted-foreground">Add extra security</p>
-                            </div>
-                            <Button variant="outline" size="sm">Enable</Button>
-                        </div>
-                        <Separator />
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                                <Label>API Keys</Label>
-                                <p className="text-xs text-muted-foreground">Manage access keys</p>
-                            </div>
-                            <Button variant="outline" size="sm" className="gap-2">
-                                <Key className="h-4 w-4" />
-                                Manage
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Data Export */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Settings className="h-4 w-4" />
-                            Data & Storage
-                        </CardTitle>
-                        <CardDescription>Manage your data</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                                <Label>Export Data</Label>
-                                <p className="text-xs text-muted-foreground">Download all your data</p>
-                            </div>
-                            <Button variant="outline" size="sm">Export</Button>
-                        </div>
-                        <Separator />
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                                <Label className="text-destructive">Delete Account</Label>
-                                <p className="text-xs text-muted-foreground">Permanently delete account</p>
-                            </div>
-                            <Button variant="destructive" size="sm">Delete</Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                        </CardFooter>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

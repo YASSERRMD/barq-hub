@@ -1,51 +1,37 @@
 "use client";
 
-import { useState } from "react";
-import { Key, Plus, Search, Copy, Check, RefreshCw, Settings, Trash2, Globe, Terminal, Zap, Shield } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Key, Plus, Search, Copy, Check, RefreshCw, Settings, Trash2, Globe, Terminal, Zap, Shield, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-
-const applications = [
-    {
-        id: "prod-app",
-        name: "Production App",
-        description: "Main production application",
-        apiKeyPrefix: "sk-barq-prod-****",
-        scopes: ["llm:chat", "llm:models", "embedding:create"],
-        rateLimit: 1000,
-        status: "active" as const,
-        requestsToday: 2847,
-        lastUsed: "2 min ago",
-    },
-    {
-        id: "dev-app",
-        name: "Development",
-        description: "Dev environment testing",
-        apiKeyPrefix: "sk-barq-dev-****",
-        scopes: ["llm:chat", "llm:models"],
-        rateLimit: 100,
-        status: "active" as const,
-        requestsToday: 156,
-        lastUsed: "15 min ago",
-    },
-    {
-        id: "staging",
-        name: "Staging Environment",
-        description: "Pre-production testing",
-        apiKeyPrefix: "sk-barq-stg-****",
-        scopes: ["llm:chat", "embedding:create"],
-        rateLimit: 500,
-        status: "suspended" as const,
-        requestsToday: 0,
-        lastUsed: "3 days ago",
-    },
-];
+import { applicationsApi } from "@/lib/api";
+import { toast } from "sonner";
+import { Application } from "@/types";
+import { formatDistanceToNow } from "date-fns";
 
 export default function ApplicationsPage() {
+    const [applications, setApplications] = useState<Application[]>([]);
+    const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchApps = async () => {
+            try {
+                const data = await applicationsApi.list();
+                setApplications(data);
+            } catch (error) {
+                console.error("Failed to load applications", error);
+                toast.error("Failed to load applications");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchApps();
+    }, []);
 
     const copyKey = (id: string, key: string) => {
         navigator.clipboard.writeText(key);
@@ -53,11 +39,15 @@ export default function ApplicationsPage() {
         setTimeout(() => setCopied(null), 2000);
     };
 
-    const statusColors = {
+    const statusColors: Record<string, string> = {
         active: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
         suspended: "bg-amber-500/10 text-amber-600 border-amber-500/20",
         expired: "bg-red-500/10 text-red-600 border-red-500/20",
     };
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-[50vh]"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>;
+    }
 
     return (
         <div className="space-y-6">
@@ -108,7 +98,7 @@ export default function ApplicationsPage() {
                                 <Zap className="w-5 h-5 text-blue-600" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold">{applications.reduce((acc, a) => acc + a.requestsToday, 0).toLocaleString()}</p>
+                                <p className="text-2xl font-bold">{applications.reduce((acc, a) => acc + (a.requestsToday || 0), 0).toLocaleString()}</p>
                                 <p className="text-xs text-muted-foreground">Requests Today</p>
                             </div>
                         </div>
@@ -167,83 +157,92 @@ export default function ApplicationsPage() {
 
             {/* Applications List */}
             <div className="space-y-4">
-                {applications.map((app) => (
-                    <Card key={app.id} className="overflow-hidden">
-                        <CardContent className="p-5">
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-start gap-4">
-                                    <div className={`p-3 rounded-xl ${app.status === "active" ? "bg-emerald-500/10" :
+                {applications.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg">
+                        No applications found. Create one to get started.
+                    </div>
+                ) : (
+                    applications.map((app) => (
+                        <Card key={app.id} className="overflow-hidden">
+                            <CardContent className="p-5">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-start gap-4">
+                                        <div className={`p-3 rounded-xl ${app.status === "active" ? "bg-emerald-500/10" :
                                             app.status === "suspended" ? "bg-amber-500/10" : "bg-red-500/10"
-                                        }`}>
-                                        <Key className={`w-6 h-6 ${app.status === "active" ? "text-emerald-600" :
+                                            }`}>
+                                            <Key className={`w-6 h-6 ${app.status === "active" ? "text-emerald-600" :
                                                 app.status === "suspended" ? "text-amber-600" : "text-red-600"
-                                            }`} />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <h4 className="font-semibold">{app.name}</h4>
-                                            <Badge variant="outline" className={statusColors[app.status]}>
-                                                {app.status}
-                                            </Badge>
+                                                }`} />
                                         </div>
-                                        <p className="text-sm text-muted-foreground mt-0.5">{app.description}</p>
-
-                                        {/* Key & Stats */}
-                                        <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                                            <button
-                                                onClick={() => copyKey(app.id, app.apiKeyPrefix)}
-                                                className="flex items-center gap-1 hover:text-foreground transition-colors"
-                                            >
-                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{app.apiKeyPrefix}</code>
-                                                {copied === app.id ? (
-                                                    <Check className="w-3 h-3 text-emerald-500" />
-                                                ) : (
-                                                    <Copy className="w-3 h-3" />
-                                                )}
-                                            </button>
-                                            <span>Last used: {app.lastUsed}</span>
-                                            <span>{app.requestsToday.toLocaleString()} requests today</span>
-                                        </div>
-
-                                        {/* Scopes */}
-                                        <div className="flex flex-wrap gap-1.5 mt-3">
-                                            {app.scopes.map((scope) => (
-                                                <Badge key={scope} variant="secondary" className="text-xs gap-1">
-                                                    <Shield className="w-3 h-3" />
-                                                    {scope}
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="font-semibold">{app.name}</h4>
+                                                <Badge variant="outline" className={statusColors[app.status || 'active']}>
+                                                    {app.status}
                                                 </Badge>
-                                            ))}
+                                            </div>
+                                            <p className="text-sm text-muted-foreground mt-0.5">{app.description}</p>
+
+                                            {/* Key & Stats */}
+                                            <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                                                <button
+                                                    onClick={() => copyKey(app.id, app.apiKeyPrefix)}
+                                                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                                                >
+                                                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{app.apiKeyPrefix}</code>
+                                                    {copied === app.id ? (
+                                                        <Check className="w-3 h-3 text-emerald-500" />
+                                                    ) : (
+                                                        <Copy className="w-3 h-3" />
+                                                    )}
+                                                </button>
+                                                <span>•</span>
+                                                <span className="flex items-center gap-1">
+                                                    <Zap className="w-3 h-3" />
+                                                    {app.requestsToday?.toLocaleString() || 0} reqs today
+                                                </span>
+                                            </div>
+
+                                            {/* Scopes */}
+                                            <div className="flex flex-wrap gap-1.5 mt-3">
+                                                {app.scopes.map((scope) => (
+                                                    <Badge key={scope} variant="secondary" className="text-xs gap-1">
+                                                        <Shield className="w-3 h-3" />
+                                                        {scope}
+                                                    </Badge>
+                                                ))}
+                                            </div>
                                         </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" size="sm">
+                                            <RefreshCw className="w-4 h-4 mr-1" />
+                                            Rotate
+                                        </Button>
+                                        <Button variant="outline" size="icon" className="h-8 w-8">
+                                            <Settings className="w-4 h-4" />
+                                        </Button>
+                                        <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
                                     </div>
                                 </div>
 
-                                {/* Actions */}
-                                <div className="flex gap-2">
-                                    <Button variant="outline" size="sm">
-                                        <RefreshCw className="w-4 h-4 mr-1" />
-                                        Rotate
-                                    </Button>
-                                    <Button variant="outline" size="icon" className="h-8 w-8">
-                                        <Settings className="w-4 h-4" />
-                                    </Button>
-                                    <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
+                                {/* Rate Limit Progress */}
+                                <div className="mt-4 pt-4 border-t">
+                                    <div className="flex items-center justify-between text-sm mb-1">
+                                        <span className="text-muted-foreground">Rate Limit Usage</span>
+                                        <span>{Math.min(100, ((app.requestsToday || 0) / (app.rateLimit * 60 || 1)) * 100).toFixed(0)}%</span>
+                                    </div>
+                                    <Progress value={Math.min(100, ((app.requestsToday || 0) / (app.rateLimit * 60 || 1)) * 100)} className="h-1.5" />
+                                    <p className="text-xs text-muted-foreground mt-1">{app.rateLimit} requests/min limit</p>
                                 </div>
-                            </div>
-
-                            {/* Rate Limit Progress */}
-                            <div className="mt-4 pt-4 border-t">
-                                <div className="flex items-center justify-between text-sm mb-1">
-                                    <span className="text-muted-foreground">Rate Limit Usage</span>
-                                    <span>{Math.min(100, (app.requestsToday / (app.rateLimit * 60)) * 100).toFixed(0)}%</span>
-                                </div>
-                                <Progress value={Math.min(100, (app.requestsToday / (app.rateLimit * 60)) * 100)} className="h-1.5" />
-                                <p className="text-xs text-muted-foreground mt-1">{app.rateLimit} requests/min limit</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
             </div>
         </div>
     );

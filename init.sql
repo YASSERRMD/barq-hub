@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS provider_accounts (
     name VARCHAR(255) NOT NULL,
     api_key_encrypted TEXT,
     enabled BOOLEAN DEFAULT true,
+    priority INTEGER DEFAULT 1,
     is_default BOOLEAN DEFAULT false,
     models JSONB DEFAULT '[]',
     config JSONB DEFAULT '{}',

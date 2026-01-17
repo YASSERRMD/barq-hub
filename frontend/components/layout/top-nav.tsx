@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -11,27 +12,24 @@ import {
     Receipt,
     FileText,
     Users,
-    Shield,
-    Activity,
     Settings,
-    Zap,
-    Bell,
-    Search,
-    User,
-    LogOut,
-    Command,
+    Activity,
+    Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -41,7 +39,6 @@ const navigation = [
     { name: "Billing", href: "/billing", icon: Receipt },
     { name: "Audit", href: "/audit", icon: FileText },
     { name: "Users", href: "/users", icon: Users },
-    { name: "Roles", href: "/roles", icon: Shield },
     { name: "Health", href: "/health", icon: Activity },
     { name: "Settings", href: "/settings", icon: Settings },
 ];
@@ -50,113 +47,81 @@ export function TopNav() {
     const pathname = usePathname();
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-border/50 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-            <div className="flex h-full items-center px-6">
-                {/* Logo */}
-                <Link href="/" className="flex items-center gap-2 mr-8">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-500">
-                        <Zap className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-lg font-bold">BARQ</span>
-                </Link>
-
-                {/* Navigation */}
-                <nav className="flex items-center gap-1">
-                    {navigation.slice(0, 6).map((item) => {
+        <>
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center gap-1">
+                <TooltipProvider delayDuration={0}>
+                    {navigation.map((item) => {
                         const isActive = pathname === item.href;
                         return (
-                            <Link
-                                key={item.name}
-                                href={item.href}
-                                className={cn(
-                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                                    isActive
-                                        ? "bg-primary/10 text-primary"
-                                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                                )}
-                            >
-                                <item.icon className="w-4 h-4" />
-                                {item.name}
-                            </Link>
+                            <Tooltip key={item.href}>
+                                <TooltipTrigger asChild>
+                                    <Link
+                                        href={item.href}
+                                        className={cn(
+                                            "flex items-center justify-center p-2 rounded-md transition-colors hover:bg-muted hover:text-foreground group relative",
+                                            isActive
+                                                ? "bg-muted text-foreground"
+                                                : "text-muted-foreground"
+                                        )}
+                                    >
+                                        <item.icon className="w-5 h-5" />
+                                        <span className="sr-only">{item.name}</span>
+                                        {isActive && (
+                                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-500" />
+                                        )}
+                                    </Link>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{item.name}</p>
+                                </TooltipContent>
+                            </Tooltip>
                         );
                     })}
+                </TooltipProvider>
+            </nav>
 
-                    {/* More dropdown for remaining items */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-                                More
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                            {navigation.slice(6).map((item) => (
-                                <DropdownMenuItem key={item.name} asChild>
-                                    <Link href={item.href} className="flex items-center gap-2">
-                                        <item.icon className="w-4 h-4" />
+            {/* Mobile Navigation */}
+            <div className="lg:hidden">
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <Button variant="ghost" size="icon" className="md:hidden">
+                            <Menu className="h-5 w-5" />
+                            <span className="sr-only">Toggle menu</span>
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-[300px] sm:w-[400px] pr-0">
+                        <SheetHeader className="mb-6 px-4 text-left">
+                            <div className="flex items-center gap-3">
+                                <img src="/assets/logo.png" alt="BARQ HUB" className="w-8 h-8 object-contain" />
+                                <SheetTitle className="font-bold bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent">
+                                    BARQ HUB
+                                </SheetTitle>
+                            </div>
+                        </SheetHeader>
+                        <div className="flex flex-col gap-1 px-2">
+                            {navigation.map((item) => {
+                                const isActive = pathname === item.href;
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={cn(
+                                            "flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium transition-colors hover:bg-muted hover:text-foreground",
+                                            isActive
+                                                ? "bg-muted/50 text-foreground border-l-2 border-violet-500"
+                                                : "text-muted-foreground"
+                                        )}
+                                    >
+                                        <item.icon className="w-5 h-5" />
                                         {item.name}
                                     </Link>
-                                </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </nav>
-
-                {/* Spacer */}
-                <div className="flex-1" />
-
-                {/* Search */}
-                <button className="flex items-center gap-2 px-3 py-1.5 mr-2 text-sm text-muted-foreground rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <Search className="w-4 h-4" />
-                    <span className="hidden sm:inline">Search...</span>
-                    <kbd className="hidden sm:inline-flex ml-2 h-5 items-center gap-1 rounded border border-border/50 bg-muted px-1.5 font-mono text-[10px] font-medium">
-                        <Command className="w-3 h-3" />K
-                    </kbd>
-                </button>
-
-                {/* Actions */}
-                <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="relative h-8 w-8">
-                        <Bell className="h-4 w-4" />
-                        <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
-                    </Button>
-
-                    <ThemeToggle />
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 rounded-full">
-                                <Avatar className="h-7 w-7">
-                                    <AvatarFallback className="bg-gradient-to-br from-violet-600 to-cyan-500 text-white text-xs">
-                                        AD
-                                    </AvatarFallback>
-                                </Avatar>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
-                            <DropdownMenuLabel>
-                                <div className="flex flex-col space-y-1">
-                                    <p className="text-sm font-medium">Admin</p>
-                                    <p className="text-xs text-muted-foreground">admin@barq.hub</p>
-                                </div>
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                                <User className="mr-2 h-4 w-4" />
-                                Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <Settings className="mr-2 h-4 w-4" />
-                                Settings
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">
-                                <LogOut className="mr-2 h-4 w-4" />
-                                Log out
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
+                                );
+                            })}
+                        </div>
+                    </SheetContent>
+                </Sheet>
             </div>
-        </header>
+        </>
     );
 }

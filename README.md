@@ -1,7 +1,7 @@
 # BARQ HUB - AI Management Console
 
 <div align="center">
-  <img src="frontend/public/logo.png" alt="BARQ HUB Logo" width="80" />
+  <img src="assets/logo.png" alt="BARQ HUB Logo" width="80" />
   <h1>BARQ HUB</h1>
   <p><strong>Enterprise-grade AI Orchestration & Management Platform</strong></p>
   

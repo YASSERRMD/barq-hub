@@ -67,8 +67,8 @@ export const providersApi = {
         const response = await api.get(`/provider-accounts/${providerId}/accounts`);
         return response.data;
     },
-    createAccount: async (providerId: string, data: any) => {
-        const response = await api.post(`/provider-accounts/${providerId}/accounts`, data);
+    createAccount: async (data: any) => {
+        const response = await api.post("/provider-accounts/accounts", data);
         return response.data;
     },
     updateAccount: async (providerId: string, accountId: string, data: any) => {

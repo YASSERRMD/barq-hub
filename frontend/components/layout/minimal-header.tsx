@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
+import { ModeToggle } from "@/components/mode-toggle";
+import { TopNav } from "@/components/layout/top-nav";
 
 interface MinimalHeaderProps {
     showBack?: boolean;
@@ -35,34 +37,34 @@ export function MinimalHeader({ showBack = false }: MinimalHeaderProps) {
                 {/* Left: Branding & Title */}
                 <div className="flex items-center gap-4">
                     <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                        <img src="/logo.png" alt="BARQ HUB" className="w-8 h-8 object-contain" />
+                        <img src="/assets/logo.png" alt="BARQ HUB" className="w-8 h-8 object-contain" />
                         <span className="font-bold hidden md:inline-block bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent">
                             BARQ HUB
                         </span>
                     </Link>
                     <div className="h-6 w-px bg-border hidden md:block" />
-                    <h1 className="text-lg font-medium">{pageTitle}</h1>
-                </div>
 
-                {/* Center: Command Palette / Search */}
-                <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
-                    <div className="relative w-full">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            type="search"
-                            placeholder="Type / to search..."
-                            className="w-full bg-muted/40 pl-9 h-9 border-0 focus-visible:ring-1 focus-visible:ring-violet-500/50"
-                        />
-                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                                <span className="text-xs">⌘</span>K
-                            </kbd>
-                        </div>
+                    {/* Navigation */}
+                    <div className="mr-4 flex items-center">
+                        <TopNav />
                     </div>
                 </div>
 
                 {/* Right: Actions & User */}
                 <div className="flex items-center gap-3">
+                    <div className="hidden md:flex items-center w-full max-w-[200px] mr-2">
+                        <div className="relative w-full">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="search"
+                                placeholder="Search..."
+                                className="w-full bg-muted/40 pl-9 h-9 border-0 focus-visible:ring-1 focus-visible:ring-violet-500/50"
+                            />
+                        </div>
+                    </div>
+
+                    <ModeToggle />
+
                     <Button variant="ghost" size="icon" className="text-muted-foreground relative">
                         <Bell className="h-5 w-5" />
                         <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500" />

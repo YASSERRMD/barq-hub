@@ -46,7 +46,8 @@ services:
     restart: unless-stopped
     environment:
       HOST: 0.0.0.0
-      PORT: 4000
+      SERVER__PORT: 4000
+      SYNAPSE__SERVER__PORT: 4000
       DATABASE_URL: postgres://barq:barq123@postgres:5432/barq_hub
       REDIS_URL: redis://redis:6379
       JWT_SECRET: barq-hub-super-secret-jwt-key-change-in-production
