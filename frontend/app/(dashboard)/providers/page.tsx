@@ -879,6 +879,32 @@ export default function ProvidersPage() {
         );
     };
 
+    const getProviderBackground = (p: Provider) => p.gradient || 'from-slate-500 to-slate-600';
+
+    const AccountList = ({ provider, accounts }: { provider: Provider, accounts: ProviderAccount[] }) => {
+        if (!accounts || accounts.length === 0) return null;
+        return (
+            <div className="flex flex-col gap-2">
+                {accounts.slice(0, 3).map(account => (
+                    <div key={account.id} className="flex items-center justify-between text-xs p-2 bg-background/50 rounded-lg border border-border/50">
+                        <div className="flex items-center gap-2">
+                            <div className={`w-1.5 h-1.5 rounded-full ${account.enabled ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                            <span className="font-medium truncate max-w-[100px]">{account.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Badge variant="outline" className="text-[10px] h-4 px-1 py-0 border-primary/20 bg-primary/5">P{account.priority}</Badge>
+                        </div>
+                    </div>
+                ))}
+                {accounts.length > 3 && (
+                    <div className="text-[10px] text-center text-muted-foreground">
+                        + {accounts.length - 3} more
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const filteredProviders = providers.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.type.toLowerCase().includes(searchTerm.toLowerCase())
@@ -945,7 +971,7 @@ export default function ProvidersPage() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredProviders.map((provider) => {
-                        const accountCount = providerAccounts[provider.id]?.length || 0;
+                        const accountCount = provider.accounts?.length || 0;
                         const isConfigured = accountCount > 0;
 
                         return (
@@ -1002,7 +1028,7 @@ export default function ProvidersPage() {
                                     </div>
 
                                     <div className="space-y-3 pt-2">
-                                        <AccountList provider={provider} accounts={providerAccounts[provider.id] || []} />
+                                        <AccountList provider={provider} accounts={provider.accounts || []} />
                                     </div>
                                 </div>
                             </Card>
