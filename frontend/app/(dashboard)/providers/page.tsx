@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
     Select,
     SelectContent,
@@ -36,7 +37,12 @@ import {
     X,
     Timer,
     Volume2,
-    Mic
+    Mic,
+    CheckCircle2,
+    PlayCircle,
+    Copy,
+    ArrowUpDown,
+    Info
 } from 'lucide-react';
 import { getProviderLogo } from "@/components/providers/provider-logos";
 
