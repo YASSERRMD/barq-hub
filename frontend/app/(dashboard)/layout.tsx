@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { MinimalHeader } from "@/components/layout/minimal-header";
+import { RadialNav } from "@/components/layout/radial-nav";
 
 export default function DashboardLayout({
     children,
@@ -17,6 +18,7 @@ export default function DashboardLayout({
             <main className="container mx-auto px-6 py-8 max-w-7xl">
                 {children}
             </main>
+            <RadialNav />
         </div>
     );
 }
