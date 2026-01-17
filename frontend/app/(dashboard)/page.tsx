@@ -59,7 +59,7 @@ export default function DashboardPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
                     <p className="text-muted-foreground">
-                        Welcome to BARQ HUB - Your SYNAPSE Brain Console
+                        Welcome to BARQ HUB - Your AI Console
                     </p>
                 </div>
                 <Badge variant="outline" className="gap-1">
