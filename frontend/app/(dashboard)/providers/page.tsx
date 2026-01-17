@@ -116,6 +116,7 @@ export default function ProvidersPage() {
     // New account form state with multi-tier quotas
     const [newAccount, setNewAccount] = useState({
         name: '',
+        providerId: '',
         apiKey: '',
         endpoint: '',
         deploymentName: '',
