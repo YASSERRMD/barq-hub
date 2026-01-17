@@ -2,8 +2,8 @@
 name = "barq-hub"
 version = "0.1.0"
 edition = "2021"
-authors = ["BARQ HUB Team"]
-description = "BARQ HUB - Lightning-fast SYNAPSE Brain Console"
+authors = ["BARQ Team"]
+description = "AI Management Console - Enterprise-grade AI orchestration platform"
 license = "MIT"
 repository = "https://github.com/YASSERRMD/barq-hub"
 
@@ -62,6 +62,12 @@ governor = "0.6"
 # Hashing
 md-5 = "0.10"
 
+# Password hashing
+bcrypt = "0.15"
+
+# JWT
+jsonwebtoken = "9"
+
 [dev-dependencies]
 tokio-test = "0.4"
 axum-test = "14.0"
@@ -76,5 +82,4 @@ strip = true
 
 [[bin]]
 name = "barq-hub"
-path = "backend/main.rs"
-
+path = "src/main.rs"

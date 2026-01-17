@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Zap, Bell, Search, Command, ArrowLeft } from "lucide-react";
+import { Command, Search, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -14,63 +13,96 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuthStore } from "@/stores/auth-store";
 
-export function MinimalHeader({ showBack = false }: { showBack?: boolean }) {
+interface MinimalHeaderProps {
+    showBack?: boolean;
+}
+
+export function MinimalHeader({ showBack = false }: MinimalHeaderProps) {
+    const pathname = usePathname();
+    const { user, logout } = useAuthStore();
+
+    // Get page title from pathname
+    const pageTitle = pathname === "/"
+        ? "Dashboard"
+        : pathname.split("/").pop()?.charAt(0).toUpperCase()! + pathname.split("/").pop()?.slice(1);
+
     return (
-        <header className="h-14 flex items-center justify-between px-6 border-b border-border/40 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
-            <div className="flex items-center gap-4">
-                {showBack && (
-                    <Link href="/">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
+        <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
+            <div className="container mx-auto max-w-7xl h-16 flex items-center justify-between px-6">
+                {/* Left: Branding & Title */}
+                <div className="flex items-center gap-4">
+                    <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                        <img src="/logo.png" alt="BARQ HUB" className="w-8 h-8 object-contain" />
+                        <span className="font-bold hidden md:inline-block bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent">
+                            BARQ HUB
+                        </span>
                     </Link>
-                )}
-                <Link href="/" className="flex items-center gap-2">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-500">
-                        <Zap className="w-4 h-4 text-white" />
+                    <div className="h-6 w-px bg-border hidden md:block" />
+                    <h1 className="text-lg font-medium">{pageTitle}</h1>
+                </div>
+
+                {/* Center: Command Palette / Search */}
+                <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
+                    <div className="relative w-full">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="Type / to search..."
+                            className="w-full bg-muted/40 pl-9 h-9 border-0 focus-visible:ring-1 focus-visible:ring-violet-500/50"
+                        />
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                                <span className="text-xs">⌘</span>K
+                            </kbd>
+                        </div>
                     </div>
-                    <span className="text-lg font-bold bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent">
-                        BARQ
-                    </span>
-                </Link>
-            </div>
+                </div>
 
-            <div className="flex items-center gap-2">
-                <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <Search className="w-4 h-4" />
-                    <kbd className="inline-flex h-5 items-center gap-1 rounded border border-border/50 bg-muted px-1.5 font-mono text-[10px] font-medium">
-                        <Command className="w-3 h-3" />K
-                    </kbd>
-                </button>
+                {/* Right: Actions & User */}
+                <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="icon" className="text-muted-foreground relative">
+                        <Bell className="h-5 w-5" />
+                        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500" />
+                    </Button>
 
-                <Button variant="ghost" size="icon" className="relative h-8 w-8">
-                    <Bell className="h-4 w-4" />
-                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
-                </Button>
-
-                <ThemeToggle />
-
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 rounded-full">
-                            <Avatar className="h-7 w-7">
-                                <AvatarFallback className="bg-gradient-to-br from-violet-600 to-cyan-500 text-white text-xs">
-                                    AD
-                                </AvatarFallback>
-                            </Avatar>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuLabel>Admin</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem><User className="mr-2 h-4 w-4" />Profile</DropdownMenuItem>
-                        <DropdownMenuItem><Settings className="mr-2 h-4 w-4" />Settings</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive"><LogOut className="mr-2 h-4 w-4" />Log out</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                                <Avatar className="h-9 w-9 border border-border">
+                                    <AvatarImage src={user?.avatar} alt={user?.name} />
+                                    <AvatarFallback>{user?.name?.[0] || "A"}</AvatarFallback>
+                                </Avatar>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56" align="end" forceMount>
+                            <DropdownMenuLabel className="font-normal">
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-sm font-medium leading-none">{user?.name || "Admin User"}</p>
+                                    <p className="text-xs leading-none text-muted-foreground">
+                                        {user?.email || "admin@barq.hub"}
+                                    </p>
+                                </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>
+                                Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                Settings
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                Billing
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-500 cursor-pointer" onClick={logout}>
+                                Log out
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </div>
         </header>
     );
