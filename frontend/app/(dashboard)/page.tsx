@@ -1,218 +1,157 @@
 "use client";
 
+import Link from "next/link";
 import {
     Cpu,
-    Database,
-    Users,
-    Activity,
-    TrendingUp,
-    DollarSign,
+    Key,
+    FlaskConical,
+    Receipt,
     FileText,
-    Zap
+    Users,
+    Shield,
+    Activity,
+    Settings,
+    ArrowRight,
+    CheckCircle,
+    AlertCircle,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-const stats = [
+const modules = [
     {
-        title: "Active Providers",
-        value: "8",
-        change: "+2 this week",
+        name: "Providers",
+        description: "Manage LLM providers and models",
+        href: "/providers",
         icon: Cpu,
-        trend: "up",
+        color: "from-violet-500 to-purple-600",
+        stat: "8 active",
+        status: "healthy",
     },
     {
-        title: "Vector Databases",
-        value: "3",
-        change: "All connected",
-        icon: Database,
-        trend: "stable",
+        name: "Applications",
+        description: "API keys and access control",
+        href: "/applications",
+        icon: Key,
+        color: "from-emerald-500 to-green-600",
+        stat: "3 apps",
+        status: "healthy",
     },
     {
-        title: "Total Users",
-        value: "24",
-        change: "+5 this month",
+        name: "Playground",
+        description: "Test prompts and models",
+        href: "/playground",
+        icon: FlaskConical,
+        color: "from-amber-500 to-orange-600",
+        stat: "Ready",
+        status: "healthy",
+    },
+    {
+        name: "Billing",
+        description: "Costs, budgets, and usage",
+        href: "/billing",
+        icon: Receipt,
+        color: "from-pink-500 to-rose-600",
+        stat: "$277",
+        status: "warning",
+    },
+    {
+        name: "Audit Logs",
+        description: "Activity and security logs",
+        href: "/audit",
+        icon: FileText,
+        color: "from-cyan-500 to-blue-600",
+        stat: "2.4K",
+        status: "healthy",
+    },
+    {
+        name: "Users",
+        description: "User accounts",
+        href: "/users",
         icon: Users,
-        trend: "up",
+        color: "from-indigo-500 to-violet-600",
+        stat: "24",
+        status: "healthy",
     },
     {
-        title: "API Requests",
-        value: "12.4K",
-        change: "+18% from yesterday",
-        icon: Activity,
-        trend: "up",
+        name: "Roles",
+        description: "Permissions and RBAC",
+        href: "/roles",
+        icon: Shield,
+        color: "from-slate-500 to-gray-600",
+        stat: "4 roles",
+        status: "healthy",
     },
-];
-
-const recentActivity = [
-    { action: "Provider added", detail: "OpenAI GPT-4o", time: "2 min ago" },
-    { action: "User login", detail: "admin@synapse.local", time: "15 min ago" },
-    { action: "Document ingested", detail: "API Documentation.pdf", time: "1 hour ago" },
-    { action: "Workflow executed", detail: "Data Processing Pipeline", time: "3 hours ago" },
+    {
+        name: "Health",
+        description: "System status",
+        href: "/health",
+        icon: Activity,
+        color: "from-green-500 to-emerald-600",
+        stat: "All OK",
+        status: "healthy",
+    },
+    {
+        name: "Settings",
+        description: "App configuration",
+        href: "/settings",
+        icon: Settings,
+        color: "from-gray-500 to-slate-600",
+        stat: "",
+        status: "healthy",
+    },
 ];
 
 export default function DashboardPage() {
     return (
-        <div className="space-y-6">
-            {/* Page Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-                    <p className="text-muted-foreground">
-                        Welcome to BARQ HUB - Your AI Console
-                    </p>
-                </div>
-                <Badge variant="outline" className="gap-1">
-                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                    System Healthy
-                </Badge>
+        <div className="space-y-8">
+            {/* Welcome */}
+            <div className="text-center space-y-2">
+                <h1 className="text-4xl font-bold tracking-tight">
+                    Welcome to <span className="bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent">BARQ</span>
+                </h1>
+                <p className="text-muted-foreground text-lg">Your AI Management Console</p>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {stats.map((stat) => (
-                    <Card key={stat.title} className="relative overflow-hidden">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                {stat.title}
-                            </CardTitle>
-                            <stat.icon className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stat.value}</div>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                {stat.trend === "up" && (
-                                    <TrendingUp className="h-3 w-3 text-green-500" />
-                                )}
-                                {stat.change}
-                            </p>
-                        </CardContent>
-                        <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-blue-500 to-cyan-400" />
-                    </Card>
-                ))}
+            {/* Status Banner */}
+            <div className="flex items-center justify-center gap-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <CheckCircle className="w-5 h-5 text-emerald-500" />
+                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                    All systems operational • 8 providers • 3 applications • 12.4K requests today
+                </span>
             </div>
 
-            {/* Quick Actions & Recent Activity */}
-            <div className="grid gap-6 md:grid-cols-2">
-                {/* Quick Actions */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Zap className="h-5 w-5 text-yellow-500" />
-                            Quick Actions
-                        </CardTitle>
-                        <CardDescription>Common tasks and shortcuts</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-3">
-                        <QuickAction
-                            icon={Cpu}
-                            title="Add Provider"
-                            description="Configure a new LLM provider"
-                        />
-                        <QuickAction
-                            icon={Database}
-                            title="Connect Vector DB"
-                            description="Setup vector database connection"
-                        />
-                        <QuickAction
-                            icon={FileText}
-                            title="View Audit Logs"
-                            description="Check recent system activity"
-                        />
-                        <QuickAction
-                            icon={DollarSign}
-                            title="Check Billing"
-                            description="View costs and usage"
-                        />
-                    </CardContent>
-                </Card>
-
-                {/* Recent Activity */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Recent Activity</CardTitle>
-                        <CardDescription>Latest actions in the system</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {recentActivity.map((activity, i) => (
-                                <div key={i} className="flex items-center gap-4">
-                                    <div className="h-2 w-2 rounded-full bg-blue-500" />
-                                    <div className="flex-1 space-y-1">
-                                        <p className="text-sm font-medium">{activity.action}</p>
-                                        <p className="text-xs text-muted-foreground">{activity.detail}</p>
+            {/* Module Grid */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {modules.map((module) => (
+                    <Link key={module.name} href={module.href}>
+                        <Card className="group h-full hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20 transition-all duration-300 cursor-pointer overflow-hidden">
+                            <CardContent className="p-5">
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className={`flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${module.color} shadow-lg`}>
+                                        <module.icon className="w-6 h-6 text-white" />
                                     </div>
-                                    <span className="text-xs text-muted-foreground">{activity.time}</span>
+                                    {module.stat && (
+                                        <Badge
+                                            variant="secondary"
+                                            className={module.status === "warning" ? "bg-amber-500/10 text-amber-600" : ""}
+                                        >
+                                            {module.status === "warning" && <AlertCircle className="w-3 h-3 mr-1" />}
+                                            {module.stat}
+                                        </Badge>
+                                    )}
                                 </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* System Status */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>System Status</CardTitle>
-                    <CardDescription>Real-time service health monitoring</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid gap-4 md:grid-cols-5">
-                        <ServiceStatus name="Backend API" status="healthy" latency="12ms" />
-                        <ServiceStatus name="PostgreSQL" status="healthy" latency="3ms" />
-                        <ServiceStatus name="Redis" status="healthy" latency="1ms" />
-                        <ServiceStatus name="Qdrant" status="healthy" latency="8ms" />
-                        <ServiceStatus name="OpenAI" status="healthy" latency="245ms" />
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
-function QuickAction({
-    icon: Icon,
-    title,
-    description
-}: {
-    icon: React.ElementType;
-    title: string;
-    description: string;
-}) {
-    return (
-        <button className="flex items-center gap-3 w-full p-3 rounded-lg border border-transparent hover:bg-accent hover:border-border transition-colors text-left">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Icon className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-                <p className="text-sm font-medium">{title}</p>
-                <p className="text-xs text-muted-foreground">{description}</p>
-            </div>
-        </button>
-    );
-}
-
-function ServiceStatus({
-    name,
-    status,
-    latency
-}: {
-    name: string;
-    status: "healthy" | "degraded" | "down";
-    latency: string;
-}) {
-    const statusColors = {
-        healthy: "bg-green-500",
-        degraded: "bg-yellow-500",
-        down: "bg-red-500",
-    };
-
-    return (
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-            <span className={`h-2.5 w-2.5 rounded-full ${statusColors[status]}`} />
-            <div className="flex-1">
-                <p className="text-sm font-medium">{name}</p>
-                <p className="text-xs text-muted-foreground">{latency}</p>
+                                <div className="space-y-1">
+                                    <h3 className="font-semibold text-lg group-hover:text-primary transition-colors flex items-center gap-2">
+                                        {module.name}
+                                        <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">{module.description}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                ))}
             </div>
         </div>
     );

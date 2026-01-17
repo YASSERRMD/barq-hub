@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Key, Plus, Search, Copy, Check, RefreshCw, Settings, Trash2, Globe, Terminal, Zap, Shield } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,7 @@ const applications = [
         name: "Production App",
         description: "Main production application",
         apiKeyPrefix: "sk-barq-prod-****",
-        scopes: ["llm:chat", "embedding:create", "knowledge:search"],
+        scopes: ["llm:chat", "llm:models", "embedding:create"],
         rateLimit: 1000,
         status: "active" as const,
         requestsToday: 2847,
@@ -36,22 +36,12 @@ const applications = [
         name: "Staging Environment",
         description: "Pre-production testing",
         apiKeyPrefix: "sk-barq-stg-****",
-        scopes: ["llm:chat", "agents:chat"],
+        scopes: ["llm:chat", "embedding:create"],
         rateLimit: 500,
         status: "suspended" as const,
         requestsToday: 0,
         lastUsed: "3 days ago",
     },
-];
-
-const scopes = [
-    { id: "llm:chat", name: "Chat Completions", category: "LLM" },
-    { id: "llm:models", name: "List Models", category: "LLM" },
-    { id: "embedding:create", name: "Create Embeddings", category: "Embedding" },
-    { id: "knowledge:search", name: "Search Knowledge", category: "Knowledge" },
-    { id: "knowledge:ingest", name: "Ingest Documents", category: "Knowledge" },
-    { id: "agents:chat", name: "Agent Chat", category: "Agents" },
-    { id: "agents:manage", name: "Manage Agents", category: "Agents" },
 ];
 
 export default function ApplicationsPage() {

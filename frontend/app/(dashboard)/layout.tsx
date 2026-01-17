@@ -1,22 +1,22 @@
 "use client";
 
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import { usePathname } from "next/navigation";
+import { MinimalHeader } from "@/components/layout/minimal-header";
 
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const pathname = usePathname();
+    const isHome = pathname === "/";
+
     return (
-        <div className="min-h-screen bg-background">
-            <Sidebar />
-            <div className="pl-56 transition-all duration-300">
-                <Header />
-                <main className="p-6">
-                    {children}
-                </main>
-            </div>
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
+            <MinimalHeader showBack={!isHome} />
+            <main className="container mx-auto px-6 py-8 max-w-7xl">
+                {children}
+            </main>
         </div>
     );
 }
