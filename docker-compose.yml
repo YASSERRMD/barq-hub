@@ -1,0 +1,172 @@
+# BARQ HUB - Full Stack Docker Compose
+# All services use different ports from SYNAPSE for parallel deployment
+
+services:
+  # ==========================================================================
+  # Backend API (Rust)
+  # ==========================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: barqhub-backend
+    ports:
+      - "4000:4000"
+    environment:
+      # Server
+      BARQ__SERVER__HOST: "0.0.0.0"
+      BARQ__SERVER__PORT: "4000"
+
+      # Database
+      DATABASE_URL: postgresql://barqhub:barqhub_password@postgres:5432/barqhub
+
+      # Redis
+      REDIS_URL: redis://redis:6379
+
+      # Vector Database
+      QDRANT_URL: http://qdrant:6333
+
+      # LLM Providers (set these in .env file)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      TOGETHER_API_KEY: ${TOGETHER_API_KEY:-}
+      COHERE_API_KEY: ${COHERE_API_KEY:-}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+
+      # AWS Bedrock
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+
+      # Embedding providers
+      VOYAGE_API_KEY: ${VOYAGE_API_KEY:-}
+      JINA_API_KEY: ${JINA_API_KEY:-}
+
+      # Logging
+      RUST_LOG: barq_hub=info,tower_http=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    networks:
+      - barqhub-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ==========================================================================
+  # Frontend (Next.js)
+  # ==========================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:4000/v1
+        NEXT_PUBLIC_WS_URL: ws://localhost:4000
+    container_name: barqhub-frontend
+    ports:
+      - "4001:4001"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - barqhub-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4001" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================================================
+  # PostgreSQL Database
+  # ==========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: barqhub-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: barqhub
+      POSTGRES_PASSWORD: barqhub_password
+      POSTGRES_DB: barqhub
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - barqhub-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U barqhub" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # Redis Cache
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: barqhub-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - barqhub-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # Qdrant Vector Database
+  # ==========================================================================
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: barqhub-qdrant
+    ports:
+      - "6335:6333"
+      - "6336:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    networks:
+      - barqhub-network
+    restart: unless-stopped
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  qdrant_data:
+    driver: local
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  barqhub-network:
+    driver: bridge

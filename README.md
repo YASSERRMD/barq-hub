@@ -1,36 +1,107 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BARQ HUB
 
-## Getting Started
+**Lightning-fast SYNAPSE Brain Console**
 
-First, run the development server:
+Open-source management console for SYNAPSE Brain with a completely new, modern design.
+
+## Features
+
+- **Dashboard** - Real-time metrics, charts, system health overview
+- **LLM Providers** - Manage OpenAI, Anthropic, Google, Mistral, Groq, and more
+- **Vector Databases** - Configure Qdrant, Pinecone, Weaviate, Chroma
+- **Playground** - Test prompts and providers live
+- **Billing** - Cost tracking, budgets, usage analytics
+- **Audit Logs** - Searchable logs with export to CSV/PDF
+- **Users & Roles** - RBAC with permissions management
+- **System Health** - Uptime, status indicators, metrics
+- **Dark/Light Mode** - System preference + manual toggle
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 14, TypeScript, Tailwind CSS, Shadcn/ui |
+| Backend | Rust, Axum, SQLx |
+| Database | PostgreSQL 16 |
+| Cache | Redis 7 |
+| Vector DB | Qdrant |
+| State | Zustand, React Query |
+| Charts | Recharts |
+
+## Quick Start
+
+### Option 1: Docker (Recommended)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clone the repository
+git clone https://github.com/YASSERRMD/barq-hub.git
+cd barq-hub
+
+# Copy environment file and add your API keys
+cp .env.example .env
+nano .env  # Add your API keys
+
+# Start all services
+docker-compose up -d --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Services:**
+| Service | Port |
+|---------|------|
+| Frontend | http://localhost:4001 |
+| Backend API | http://localhost:4000 |
+| PostgreSQL | localhost:5433 |
+| Redis | localhost:6380 |
+| Qdrant | localhost:6335 |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Default Login:**
+- Email: `admin@synapse.local`
+- Password: `admin123`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Option 2: Local Development
 
-## Learn More
+```bash
+# Start databases only
+docker-compose up postgres redis qdrant -d
 
-To learn more about Next.js, take a look at the following resources:
+# Terminal 1: Backend
+cargo run
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Terminal 2: Frontend
+cd frontend && npm install && npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+barq-hub/
+├── backend/           # Rust backend source
+│   ├── api/          # REST API handlers
+│   ├── agents/       # Agent management
+│   ├── providers/    # LLM provider adapters
+│   ├── knowledge/    # RAG, embeddings
+│   ├── governance/   # Auth, RBAC, audit
+│   └── workflow/     # DAG workflow engine
+├── frontend/          # Next.js frontend
+│   ├── app/          # Pages & routes
+│   ├── components/   # React components
+│   ├── hooks/        # Custom hooks
+│   ├── stores/       # Zustand state
+│   └── types/        # TypeScript types
+├── docker-compose.yml
+├── Cargo.toml
+├── init-db.sql
+└── README.md
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Environment Variables
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `.env.example` for all available configuration options.
+
+## License
+
+MIT License
+
+---
+
+**BARQ HUB** - Built for the AI community
