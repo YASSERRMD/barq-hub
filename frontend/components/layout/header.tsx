@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search, User, LogOut, Settings } from "lucide-react";
+import { Bell, Search, User, LogOut, Settings, Command } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -12,35 +12,26 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
 export function Header() {
     return (
-        <header className="sticky top-0 z-40 h-16 flex items-center justify-between px-6 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky top-0 z-40 h-14 flex items-center justify-between px-4 border-b border-border/40 bg-background/80 backdrop-blur-xl">
             {/* Search */}
-            <div className="flex items-center gap-4 flex-1 max-w-md">
-                <div className="relative w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search..."
-                        className="pl-10 bg-muted/50 border-transparent focus:border-border"
-                    />
-                </div>
-            </div>
+            <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors">
+                <Search className="w-4 h-4" />
+                <span>Search...</span>
+                <kbd className="ml-4 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-border/50 bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                    <Command className="w-3 h-3" />K
+                </kbd>
+            </button>
 
             {/* Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
                 {/* Notifications */}
-                <Button variant="ghost" size="icon" className="relative h-9 w-9">
+                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-lg">
                     <Bell className="h-4 w-4" />
-                    <Badge
-                        variant="destructive"
-                        className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]"
-                    >
-                        3
-                    </Badge>
-                    <span className="sr-only">Notifications</span>
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
                 </Button>
 
                 {/* Theme Toggle */}
@@ -49,10 +40,10 @@ export function Header() {
                 {/* User Menu */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                            <Avatar className="h-9 w-9">
+                        <Button variant="ghost" className="relative h-9 w-9 rounded-lg">
+                            <Avatar className="h-8 w-8">
                                 <AvatarImage src="/images/avatar.png" alt="User" />
-                                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-400 text-white font-medium">
+                                <AvatarFallback className="bg-gradient-to-br from-violet-600 to-cyan-500 text-white text-xs font-semibold">
                                     AD
                                 </AvatarFallback>
                             </Avatar>
@@ -61,25 +52,23 @@ export function Header() {
                     <DropdownMenuContent className="w-56" align="end" forceMount>
                         <DropdownMenuLabel className="font-normal">
                             <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-medium leading-none">Admin</p>
-                                <p className="text-xs leading-none text-muted-foreground">
-                                    admin@synapse.local
-                                </p>
+                                <p className="text-sm font-medium">Admin</p>
+                                <p className="text-xs text-muted-foreground">admin@barq.hub</p>
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem>
                             <User className="mr-2 h-4 w-4" />
-                            <span>Profile</span>
+                            Profile
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                             <Settings className="mr-2 h-4 w-4" />
-                            <span>Settings</span>
+                            Settings
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive focus:text-destructive">
                             <LogOut className="mr-2 h-4 w-4" />
-                            <span>Log out</span>
+                            Log out
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
