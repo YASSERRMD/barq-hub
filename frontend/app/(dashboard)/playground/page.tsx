@@ -80,11 +80,42 @@ export default function PlaygroundPage() {
         try {
             const response = await fetch(`${apiUrl}/provider-accounts/providers`);
             if (response.ok) {
-                const data = await response.json();
-                setProviders(data);
+                const providerDefs = await response.json();
 
-                // Auto-select first provider with accounts and models
-                const firstWithModels = data.find((p: Provider) =>
+                // Fetch accounts for each provider (like Providers page does)
+                const providersWithAccounts: Provider[] = await Promise.all(
+                    providerDefs
+                        .filter((p: any) => p.provider_type === 'llm' || p.provider_type === 'both')
+                        .map(async (p: any) => {
+                            let accounts: ProviderAccount[] = [];
+                            try {
+                                const accountsRes = await fetch(`${apiUrl}/provider-accounts/${p.id}/accounts`);
+                                if (accountsRes.ok) {
+                                    const rawAccounts = await accountsRes.json();
+                                    accounts = rawAccounts.map((a: any) => ({
+                                        id: a.id,
+                                        name: a.name,
+                                        provider_id: a.provider_id,
+                                        enabled: a.enabled,
+                                        models: a.models || [],
+                                    }));
+                                }
+                            } catch (e) {
+                                console.error(`Failed to fetch accounts for ${p.id}:`, e);
+                            }
+
+                            return {
+                                id: p.id,
+                                name: p.name,
+                                accounts,
+                            } as Provider;
+                        })
+                );
+
+                setProviders(providersWithAccounts);
+
+                // Auto-select first provider with enabled accounts and models
+                const firstWithModels = providersWithAccounts.find((p: Provider) =>
                     p.accounts?.some((a: ProviderAccount) => a.enabled && a.models?.length > 0)
                 );
                 if (firstWithModels) {
@@ -92,6 +123,12 @@ export default function PlaygroundPage() {
                     const firstAccount = firstWithModels.accounts.find((a: ProviderAccount) => a.enabled && a.models?.length > 0);
                     if (firstAccount?.models?.[0]) {
                         setSelectedModel(firstAccount.models[0].id || firstAccount.models[0].name);
+                    }
+                } else if (providersWithAccounts.length > 0) {
+                    // If no accounts with models, still select provider (user might want to use default models)
+                    const firstProvider = providersWithAccounts.find(p => p.accounts && p.accounts.length > 0);
+                    if (firstProvider) {
+                        setSelectedProvider(firstProvider.id);
                     }
                 }
             }
