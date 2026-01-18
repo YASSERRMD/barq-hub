@@ -293,9 +293,9 @@ pub async fn get_system_health(State(state): State<Arc<AppState>>) -> Json<Healt
     
     services.push(ServiceHealth {
         name: "PostgreSQL".to_string(),
-        status: pg_status,
+        status: pg_status.clone(),
         latency_ms: pg_latency,
-        details: pg_details,
+        details: pg_details.clone(),
         last_check: now,
     });
     
