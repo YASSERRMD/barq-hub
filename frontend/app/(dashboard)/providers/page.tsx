@@ -463,6 +463,13 @@ export default function ProvidersPage() {
         setSaving(true);
         setError(null);
         try {
+            // Convert quotas to backend format (snake_case)
+            const formattedQuotas = editForm.quotas.map(q => ({
+                period: q.period,
+                token_limit: q.tokenLimit,
+                request_limit: q.requestLimit && q.requestLimit > 0 ? q.requestLimit : undefined,
+            }));
+
             const response = await fetch(`${apiUrl}/provider-accounts/accounts/${editingAccount.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -470,7 +477,7 @@ export default function ProvidersPage() {
                     name: editForm.name,
                     enabled: editForm.enabled,
                     priority: editForm.priority,
-                    quotas: editForm.quotas,
+                    quotas: formattedQuotas.length > 0 ? formattedQuotas : undefined,
                     models: editForm.models,
                 }),
             });
