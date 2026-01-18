@@ -464,72 +464,74 @@ curl -X POST "${apiUrl}/chat/completions" \\
 
                     {/* Chat Messages */}
                     <Card className="h-[500px] flex flex-col">
-                        <CardContent className="flex-1 p-4 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100% - 72px)' }}>
-                            {messages.length === 0 ? (
-                                <div className="h-full flex items-center justify-center text-muted-foreground">
-                                    <div className="text-center space-y-2">
-                                        <Bot className="w-12 h-12 mx-auto opacity-50" />
-                                        <p>Start a conversation{currentProvider ? ` with ${currentProvider.name}` : ''}</p>
-                                        {!selectedModel && (
-                                            <p className="text-sm text-amber-600">Select a model to begin</p>
-                                        )}
-                                    </div>
-                                </div>
-                            ) : (
-                                messages.map((msg, i) => (
-                                    <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
-                                        {msg.role === "assistant" && (
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center flex-shrink-0">
-                                                <Bot className="w-4 h-4 text-white" />
-                                            </div>
-                                        )}
-                                        <div className={`max-w-[70%] p-3 rounded-lg ${msg.role === "user"
-                                            ? "bg-primary text-primary-foreground"
-                                            : "bg-muted"
-                                            }`}>
-                                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                                        </div>
-                                        {msg.role === "user" && (
-                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                                                <User className="w-4 h-4" />
-                                            </div>
-                                        )}
-                                    </div>
-                                ))
-                            )}
-                            {isLoading && (
-                                <div className="flex gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center">
-                                        <Bot className="w-4 h-4 text-white animate-pulse" />
-                                    </div>
-                                    <div className="bg-muted p-3 rounded-lg">
-                                        <div className="flex gap-1">
-                                            <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                                            <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:100ms]" />
-                                            <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:200ms]" />
+                        {/* Chat Messages */}
+                        <Card className="h-[500px] flex flex-col">
+                            <CardContent className="flex-1 min-h-0 p-4 space-y-4 overflow-y-auto">
+                                {messages.length === 0 ? (
+                                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                                        <div className="text-center space-y-2">
+                                            <Bot className="w-12 h-12 mx-auto opacity-50" />
+                                            <p>Start a conversation{currentProvider ? ` with ${currentProvider.name}` : ''}</p>
+                                            {!selectedModel && (
+                                                <p className="text-sm text-amber-600">Select a model to begin</p>
+                                            )}
                                         </div>
                                     </div>
-                                </div>
-                            )}
-                            <div ref={messagesEndRef} />
-                        </CardContent>
+                                ) : (
+                                    messages.map((msg, i) => (
+                                        <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
+                                            {msg.role === "assistant" && (
+                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                                                    <Bot className="w-4 h-4 text-white" />
+                                                </div>
+                                            )}
+                                            <div className={`max-w-[70%] p-3 rounded-lg ${msg.role === "user"
+                                                ? "bg-primary text-primary-foreground"
+                                                : "bg-muted"
+                                                }`}>
+                                                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                            </div>
+                                            {msg.role === "user" && (
+                                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                                    <User className="w-4 h-4" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                                {isLoading && (
+                                    <div className="flex gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center">
+                                            <Bot className="w-4 h-4 text-white animate-pulse" />
+                                        </div>
+                                        <div className="bg-muted p-3 rounded-lg">
+                                            <div className="flex gap-1">
+                                                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                                                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:100ms]" />
+                                                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:200ms]" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                <div ref={messagesEndRef} />
+                            </CardContent>
 
-                        {/* Input */}
-                        <div className="p-4 border-t">
-                            <div className="flex gap-2">
-                                <Input
-                                    placeholder={selectedModel ? "Type a message..." : "Select a model first..."}
-                                    value={input}
-                                    onChange={e => setInput(e.target.value)}
-                                    onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
-                                    disabled={!selectedModel}
-                                />
-                                <Button onClick={handleSend} disabled={isLoading || !input.trim() || !selectedModel}>
-                                    <Send className="w-4 h-4" />
-                                </Button>
+                            {/* Input */}
+                            <div className="p-4 border-t">
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder={selectedModel ? "Type a message..." : "Select a model first..."}
+                                        value={input}
+                                        onChange={e => setInput(e.target.value)}
+                                        onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
+                                        disabled={!selectedModel}
+                                    />
+                                    <Button onClick={handleSend} disabled={isLoading || !input.trim() || !selectedModel}>
+                                        <Send className="w-4 h-4" />
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    </Card>
+                        </Card>
                 </TabsContent>
 
                 <TabsContent value="code" className="space-y-4 mt-4">

@@ -77,8 +77,8 @@ export default function HealthPage() {
                                         </div>
                                         <CardTitle className="text-base font-semibold">{service.name}</CardTitle>
                                     </div>
-                                    <Badge variant={service.status === "up" ? "default" : "destructive"} className={
-                                        service.status === "up"
+                                    <Badge variant={service.status === "up" || service.status === "healthy" ? "default" : "destructive"} className={
+                                        service.status === "up" || service.status === "healthy"
                                             ? "bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/20"
                                             : "bg-red-500/10 text-red-600 border-red-500/20"
                                     }>

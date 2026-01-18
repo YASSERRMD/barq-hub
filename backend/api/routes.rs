@@ -7,7 +7,7 @@ use tower_http::trace::TraceLayer;
 use tower_http::compression::CompressionLayer;
 
 use super::{handlers, state::AppState, middleware::logging_middleware};
-use super::{workflow_handlers, knowledge_handlers, governance_handlers, agent_handlers, provider_handlers, admin_handlers, voice_handlers};
+use super::{governance_handlers, provider_handlers, admin_handlers, voice_handlers, settings_handlers};
 
 /// Create the API router with all routes
 pub fn create_router(state: Arc<AppState>) -> Router {
@@ -30,22 +30,16 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         // Budgets
         .route("/budgets", post(handlers::set_budget))
         .route("/budgets/:entity_id", get(handlers::get_budget))
+        // Settings
+        .route("/settings", get(settings_handlers::get_settings))
+        .route("/settings", put(settings_handlers::update_settings))
+        .route("/settings/smtp", get(settings_handlers::get_smtp_settings))
+        .route("/settings/smtp", put(settings_handlers::update_smtp_settings))
+        .route("/settings/smtp/test", post(settings_handlers::test_smtp_settings))
         // Status
         .route("/status", get(handlers::status))
-        // Workflows (Phase 2)
-        .route("/workflows", get(workflow_handlers::list_workflows))
-        .route("/workflows", post(workflow_handlers::create_workflow))
-        .route("/workflows/:id", get(workflow_handlers::get_workflow))
-        .route("/workflows/:id", delete(workflow_handlers::delete_workflow))
-        .route("/workflows/:id/execute", post(workflow_handlers::execute_workflow))
-        .route("/executions", get(workflow_handlers::list_executions))
-        .route("/executions/:id", get(workflow_handlers::get_execution))
-        // Knowledge (Phase 3)
-        .route("/knowledge/ingest", post(knowledge_handlers::ingest_document))
-        .route("/knowledge/search", get(knowledge_handlers::search_knowledge))
-        .route("/knowledge/rag", get(knowledge_handlers::get_rag_context))
-        .route("/knowledge/documents/:id", delete(knowledge_handlers::delete_document))
-        .route("/knowledge/stats", get(knowledge_handlers::knowledge_stats))
+        // Status
+        .route("/status", get(handlers::status))
         // Governance (Phase 4)
         .route("/auth/register", post(governance_handlers::register))
         .route("/auth/login", post(governance_handlers::login))
@@ -53,19 +47,7 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/roles", get(governance_handlers::list_roles))
         .route("/roles/assign", post(governance_handlers::assign_role))
         .route("/audit", get(governance_handlers::get_audit_logs))
-        // Agents (Dynamic provider configuration)
-        .route("/agents", get(agent_handlers::list_agents))
-        .route("/agents", post(agent_handlers::create_agent))
-        .route("/agents/providers", get(agent_handlers::list_provider_options))
-        .route("/agents/:id", get(agent_handlers::get_agent))
-        .route("/agents/:id", put(agent_handlers::update_agent))
-        .route("/agents/:id", delete(agent_handlers::delete_agent))
-        .route("/agents/:id/llm", put(agent_handlers::update_llm_config))
-        .route("/agents/:id/embedding", put(agent_handlers::update_embedding_config))
-        .route("/agents/:id/vectordb", put(agent_handlers::update_vectordb_config))
-        .route("/agents/:id/chat", post(agent_handlers::chat_with_agent))
-        .route("/agents/:id/knowledge/ingest", post(agent_handlers::ingest_to_agent))
-        .route("/agents/:id/knowledge/search", get(agent_handlers::search_agent_knowledge))
+        .route("/audit", get(governance_handlers::get_audit_logs))
         // Provider Account Management (NEW)
         .route("/provider-accounts/providers", get(provider_handlers::list_providers))
         .route("/provider-accounts/:provider_id/accounts", get(provider_handlers::get_provider_accounts))

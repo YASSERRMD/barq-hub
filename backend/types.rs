@@ -317,6 +317,7 @@ pub enum ProviderPreference {
 
 /// A single cost entry for tracking usage
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CostEntry {
     /// Unique entry ID
     pub id: String,
@@ -340,6 +341,7 @@ pub struct CostEntry {
 
 /// Summary of costs over a period
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CostSummary {
     /// Total cost in USD
     pub total_cost: f64,
@@ -361,6 +363,7 @@ pub struct CostSummary {
 
 /// Budget configuration for a user or organization
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Budget {
     /// User or org ID
     pub entity_id: String,

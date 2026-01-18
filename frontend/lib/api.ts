@@ -85,26 +85,26 @@ export const providersApi = {
     },
 };
 
-// Applications API
+// Applications API (API Keys)
 export const applicationsApi = {
     list: async () => {
-        const response = await api.get("/applications");
+        const response = await api.get("/admin/applications");
         return response.data;
     },
     create: async (data: any) => {
-        const response = await api.post("/applications", data);
+        const response = await api.post("/admin/applications", data);
         return response.data;
     },
     update: async (id: string, data: any) => {
-        const response = await api.put(`/applications/${id}`, data);
+        const response = await api.put(`/admin/applications/${id}`, data);
         return response.data;
     },
     delete: async (id: string) => {
-        const response = await api.delete(`/applications/${id}`);
+        const response = await api.delete(`/admin/applications/${id}`);
         return response.data;
     },
     rotateKey: async (id: string) => {
-        const response = await api.post(`/applications/${id}/rotate-key`);
+        const response = await api.post(`/admin/applications/${id}/rotate`);
         return response.data;
     },
 };

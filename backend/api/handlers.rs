@@ -16,6 +16,33 @@ use crate::{
 };
 use super::state::AppState;
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CostSummary {
+    pub total_cost: f64,
+    pub request_count: usize,
+    pub total_tokens: u64,
+    pub by_provider: std::collections::HashMap<String, f64>,
+    pub by_model: std::collections::HashMap<String, f64>,
+    pub by_user: std::collections::HashMap<String, f64>,
+    pub period_start: chrono::DateTime<chrono::Utc>,
+    pub period_end: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CostEntry {
+    pub id: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub provider: String,
+    pub model: String,
+    pub input_tokens: u32,
+    pub output_tokens: u32,
+    pub cost: f64,
+    pub user_id: String,
+    pub request_id: String,
+}
+
 // ============================================================================
 // Chat Completions
 // ============================================================================
@@ -169,6 +196,7 @@ pub async fn list_providers(
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProviderInfo {
     pub id: String,
     pub name: String,
@@ -251,6 +279,7 @@ pub async fn status(
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StatusResponse {
     pub status: String,
     pub version: String,
