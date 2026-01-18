@@ -5,6 +5,8 @@ node_modules/
 
 # Build outputs
 target/
+backend/target/
+**/target/
 /frontend/.next/
 /frontend/out/
 *.pdb

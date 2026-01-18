@@ -46,13 +46,69 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create router
     let app = create_router(state.clone());
 
-    // Start server
-    let addr = config.server_addr();
-    tracing::info!("Server listening on http://{}", addr);
+    // Start HTTP server
+    let http_addr = config.server_addr();
+    tracing::info!("HTTP server listening on http://{}", http_addr);
     tracing::info!("Database connected: {}", state.is_database_connected());
 
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
-    axum::serve(listener, app).await?;
+    let http_listener = tokio::net::TcpListener::bind(&http_addr).await?;
+    let http_server = async move {
+        axum::serve(http_listener, app).await
+    };
+
+    // Start gRPC server if database is available
+    let grpc_server = if let Some(ref app_repo) = state.application_repo {
+        use tonic::transport::Server;
+        use barq_hub::grpc::{
+            barq::{chat_service_server::ChatServiceServer, models_service_server::ModelsServiceServer},
+            ApiKeyInterceptor, ChatServiceImpl, ModelsServiceImpl,
+        };
+
+        let grpc_addr = "0.0.0.0:4002".parse().expect("Invalid gRPC address");
+        let auth = ApiKeyInterceptor::new(app_repo.clone());
+        
+        let chat_service = ChatServiceImpl::new(state.clone(), auth.clone());
+        let models_service = ModelsServiceImpl::new(state.clone(), auth.clone());
+
+        let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+        
+        // Mark services as serving
+        // We can't await here easily if we want to return the future, but usually we just add the service.
+        // Actually set_serving is async. We are in async main, so we can await.
+        // But need to know the service names.
+        // tonic_health uses the package.Service name, e.g. "barq.ChatService"
+        health_reporter.set_serving::<ChatServiceServer<ChatServiceImpl>>().await;
+        health_reporter.set_serving::<ModelsServiceServer<ModelsServiceImpl>>().await;
+
+        tracing::info!("gRPC server listening on {}", grpc_addr);
+        
+        Some(Server::builder()
+            .add_service(health_service)
+            .add_service(ChatServiceServer::new(chat_service))
+            .add_service(ModelsServiceServer::new(models_service))
+            .serve(grpc_addr))
+    } else {
+        tracing::warn!("gRPC server disabled: database not available");
+        None
+    };
+
+    // Run both servers concurrently
+    if let Some(grpc) = grpc_server {
+        tokio::select! {
+            result = http_server => {
+                if let Err(e) = result {
+                    tracing::error!("HTTP server error: {}", e);
+                }
+            }
+            result = grpc => {
+                if let Err(e) = result {
+                    tracing::error!("gRPC server error: {}", e);
+                }
+            }
+        }
+    } else {
+        http_server.await?;
+    }
 
     Ok(())
 }

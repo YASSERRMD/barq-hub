@@ -73,6 +73,27 @@ pub enum ProviderType {
     Gemini,
 }
 
+impl std::str::FromStr for ProviderType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "openai" => Ok(Self::OpenAI),
+            "anthropic" => Ok(Self::Anthropic),
+            "mistral" => Ok(Self::Mistral),
+            "local" | "ollama" => Ok(Self::Local),
+            "bedrock" => Ok(Self::Bedrock),
+            "azure" => Ok(Self::Azure),
+            "azure_openai" | "azureopenai" => Ok(Self::AzureOpenAI),
+            "groq" => Ok(Self::Groq),
+            "together" => Ok(Self::Together),
+            "cohere" => Ok(Self::Cohere),
+            "gemini" | "google" => Ok(Self::Gemini),
+            _ => Err(format!("Unknown provider type: {}", s)),
+        }
+    }
+}
+
 /// Capability of a model (LLM, Embedding, TTS, STT)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

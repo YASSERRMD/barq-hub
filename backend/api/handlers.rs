@@ -15,6 +15,8 @@ use crate::{
     error::Result,
 };
 use super::state::AppState;
+use crate::db::{ProviderAccountRepository, ProviderAccountRow};
+use serde_json::Value as JsonValue;
 
 // ============================================================================
 // Chat Completions
@@ -30,79 +32,80 @@ pub async fn chat_completions(
     // Check budget (estimate ~1000 tokens)
     state.cost_manager.can_request(&user_id, 0.01).await?;
 
-    // If explicit provider is specified, try to use AccountManager first
+    // If explicit provider is specified, query database directly for account
     if let Some(ref provider_id) = request.provider {
-        // Try to get an account from AccountManager
-        if let Some(account) = state.account_manager.get_available_account(provider_id).await {
-            // Get API key from account config
-            let api_key = match &account.config {
-                crate::providers::account_manager::AccountConfig::ApiKey(cfg) => cfg.api_key.clone(),
-                crate::providers::account_manager::AccountConfig::Azure(cfg) => cfg.api_key.clone(),
-                crate::providers::account_manager::AccountConfig::Aws(_) => String::new(), // AWS uses different auth
-                crate::providers::account_manager::AccountConfig::VectorDb(cfg) => cfg.api_key.clone().unwrap_or_default(),
+        if let Some(ref pool) = state.db_pool {
+            let repo = ProviderAccountRepository::new(pool.clone());
+            
+            // Try to get default account first, then any enabled account
+            let target_account = if let Ok(Some(account)) = repo.get_default(provider_id).await {
+                Some(account)
+            } else if let Ok(accounts) = repo.list_by_provider(provider_id).await {
+                accounts.into_iter().find(|a| a.enabled && !a.api_key_encrypted.clone().unwrap_or_default().is_empty())
+            } else {
+                None
             };
 
-            if !api_key.is_empty() {
-                // Create a provider from the account
-                let provider_type = match provider_id.as_str() {
-                    "openai" => crate::ProviderType::OpenAI,
-                    "anthropic" => crate::ProviderType::Anthropic,
-                    "mistral" => crate::ProviderType::Mistral,
-                    "cohere" => crate::ProviderType::Cohere,
-                    "groq" => crate::ProviderType::Groq,
-                    "together" => crate::ProviderType::Together,
-                    "gemini" => crate::ProviderType::Gemini,
-                    "azure" => crate::ProviderType::AzureOpenAI,
-                    "bedrock" => crate::ProviderType::Bedrock,
-                    _ => crate::ProviderType::OpenAI, // Default to OpenAI-compatible
-                };
+            if let Some(account) = target_account {
+                let api_key = account.api_key_encrypted.clone().unwrap_or_default();
+                
+                if !api_key.is_empty() {
+                    let provider_type = match provider_id.as_str() {
+                        "openai" => crate::ProviderType::OpenAI,
+                        "anthropic" => crate::ProviderType::Anthropic,
+                        "mistral" => crate::ProviderType::Mistral,
+                        "cohere" => crate::ProviderType::Cohere,
+                        "groq" => crate::ProviderType::Groq,
+                        "together" => crate::ProviderType::Together,
+                        "gemini" => crate::ProviderType::Gemini,
+                        "azure" | "azure-openai" => crate::ProviderType::AzureOpenAI,
+                        "bedrock" => crate::ProviderType::Bedrock,
+                        _ => crate::ProviderType::OpenAI,
+                    };
 
-                let base_url = get_provider_base_url(provider_id, &account);
+                    let base_url = get_provider_base_url(provider_id, account.endpoint.as_deref());
 
-                let provider = crate::Provider {
-                    id: provider_id.clone(),
-                    name: account.name.clone(),
-                    provider_type,
-                    api_key,
-                    models: Vec::new(),
-                    base_url,
-                    pricing: crate::ProviderPricing {
-                        input_token_cost: 0.0,
-                        output_token_cost: 0.0,
-                    },
-                    enabled: true,
-                    health: crate::ProviderHealth::default(),
-                    headers: std::collections::HashMap::new(),
-                };
+                    let provider = crate::Provider {
+                        id: provider_id.clone(),
+                        name: account.name.clone(),
+                        provider_type,
+                        api_key,
+                        models: Vec::new(),
+                        base_url,
+                        pricing: crate::ProviderPricing {
+                            input_token_cost: 0.0,
+                            output_token_cost: 0.0,
+                        },
+                        enabled: true,
+                        health: crate::ProviderHealth::default(),
+                        headers: std::collections::HashMap::new(),
+                    };
 
-                // Create adapter and make request
-                let adapter = crate::providers::create_adapter(provider, state.http_client.clone());
-                match adapter.chat(&request).await {
-                    Ok(response) => {
-                        // Record usage
-                        state.account_manager.record_usage(&account.id, response.usage.total_tokens as u64, 1).await;
-                        
-                        // Record cost
-                        state.cost_manager.record_cost(
-                            &response.provider,
-                            &response.model,
-                            &response.usage,
-                            response.cost,
-                            &user_id,
-                            &response.id,
-                        ).await?;
+                    let adapter = crate::providers::create_adapter(provider, state.http_client.clone());
+                    match adapter.chat(&request).await {
+                        Ok(response) => {
+                            // Record cost to database
+                            state.cost_manager.record_cost(
+                                &response.provider,
+                                &response.model,
+                                &response.usage,
+                                response.cost,
+                                &user_id,
+                                &response.id,
+                            ).await?;
 
-                        return Ok(Json(response));
-                    }
-                    Err(e) => {
-                        tracing::warn!(provider = %provider_id, error = %e, "Account manager provider failed, trying router");
+                            return Ok(Json(response));
+                        }
+                        Err(e) => {
+                            tracing::warn!(provider = %provider_id, error = %e, "Provider failed, trying router");
+                        }
                     }
                 }
             }
         }
     }
 
-    // Fall back to router
+    // Fall back to router for providers not in database
     let response = state.router.route_with_fallback(&request).await?;
 
     // Record cost
@@ -118,19 +121,14 @@ pub async fn chat_completions(
     Ok(Json(response))
 }
 
-/// Get the base URL for a provider
-fn get_provider_base_url(provider_id: &str, account: &crate::providers::ProviderAccount) -> String {
-    // Check if account has custom endpoint
-    if let crate::providers::account_manager::AccountConfig::ApiKey(cfg) = &account.config {
-        if let Some(ref endpoint) = cfg.custom_endpoint {
-            return endpoint.clone();
+/// Get the base URL for a provider (database-backed version)
+fn get_provider_base_url(provider_id: &str, custom_endpoint: Option<&str>) -> String {
+    if let Some(endpoint) = custom_endpoint {
+        if !endpoint.is_empty() {
+            return endpoint.to_string();
         }
     }
-    if let crate::providers::account_manager::AccountConfig::Azure(cfg) = &account.config {
-        return cfg.endpoint.clone();
-    }
 
-    // Default base URLs per provider
     match provider_id {
         "openai" => "https://api.openai.com/v1".to_string(),
         "anthropic" => "https://api.anthropic.com/v1".to_string(),

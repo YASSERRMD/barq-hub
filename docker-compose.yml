@@ -55,6 +55,7 @@ services:
       RUST_LOG: info,barq_hub=debug
     ports:
       - "4000:4000"
+      - "4002:4002" # gRPC
     depends_on:
       postgres:
         condition: service_healthy

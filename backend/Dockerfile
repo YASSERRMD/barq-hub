@@ -1,7 +1,7 @@
 # Build stage
 FROM rustlang/rust:nightly AS builder
 
-RUN apt-get update && apt-get install -y musl-tools libssl-dev pkg-config
+RUN apt-get update && apt-get install -y musl-tools libssl-dev pkg-config protobuf-compiler
 
 WORKDIR /app
 

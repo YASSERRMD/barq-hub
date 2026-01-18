@@ -13,7 +13,7 @@ pub use pool::DbPool;
 pub use users::UserRepository;
 pub use sessions::SessionRepository;
 pub use agents::AgentRepository;
-pub use provider_accounts::ProviderAccountRepository;
+pub use provider_accounts::{ProviderAccountRepository, ProviderAccountRow};
 pub use audit::AuditRepository;
 pub use costs::CostRepository;
 pub use applications::ApplicationRepository;

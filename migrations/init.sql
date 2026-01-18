@@ -35,8 +35,13 @@ CREATE TABLE IF NOT EXISTS provider_accounts (
     enabled BOOLEAN DEFAULT true,
     priority INTEGER DEFAULT 1,
     is_default BOOLEAN DEFAULT false,
+    endpoint TEXT,
+    region TEXT,
+    deployment_name TEXT,
     models JSONB DEFAULT '[]',
     config JSONB DEFAULT '{}',
+    quota_config JSONB DEFAULT '{}',
+    metadata JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
