@@ -19,7 +19,7 @@ pub struct ApplicationRow {
     pub updated_at: DateTime<Utc>,
     pub last_used: Option<DateTime<Utc>>,
     pub expires_at: Option<DateTime<Utc>>,
-    pub requests_today: i64,
+    pub requests_today: i32,
     pub requests_reset_at: DateTime<Utc>,
 }
 
@@ -52,8 +52,8 @@ impl ApplicationRepository {
     ) -> Result<ApplicationRow, sqlx::Error> {
         sqlx::query_as::<_, ApplicationRow>(
             r#"
-            INSERT INTO applications (id, name, description, api_key_hash, api_key_prefix, scopes, rate_limit, status, expires_at, created_at, updated_at, requests_reset_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, NOW(), NOW(), NOW())
+            INSERT INTO applications (id, name, description, api_key_hash, api_key_prefix, scopes, rate_limit, status, expires_at, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, NOW(), NOW())
             RETURNING *
             "#
         )

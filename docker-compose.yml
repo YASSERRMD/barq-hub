@@ -40,8 +40,8 @@ services:
   # Backend API (Rust)
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: barq-backend
     restart: unless-stopped
     environment:

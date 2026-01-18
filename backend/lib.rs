@@ -13,10 +13,7 @@ pub mod api;
 pub mod cost;
 pub mod config;
 pub mod error;
-pub mod workflow;
-pub mod knowledge;
 pub mod governance;
-pub mod agents;
 pub mod db;
 
 pub use types::*;

@@ -38,15 +38,12 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/settings/smtp/test", post(settings_handlers::test_smtp_settings))
         // Status
         .route("/status", get(handlers::status))
-        // Status
-        .route("/status", get(handlers::status))
         // Governance (Phase 4)
         .route("/auth/register", post(governance_handlers::register))
         .route("/auth/login", post(governance_handlers::login))
         .route("/auth/logout/:token", post(governance_handlers::logout))
         .route("/roles", get(governance_handlers::list_roles))
         .route("/roles/assign", post(governance_handlers::assign_role))
-        .route("/audit", get(governance_handlers::get_audit_logs))
         .route("/audit", get(governance_handlers::get_audit_logs))
         // Provider Account Management (NEW)
         .route("/provider-accounts/providers", get(provider_handlers::list_providers))

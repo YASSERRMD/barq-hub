@@ -473,6 +473,7 @@ pub struct ApplicationResponse {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateApplicationRequest {
     pub name: String,
     pub description: Option<String>,
@@ -582,6 +583,7 @@ pub async fn create_application(
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateApplicationRequest {
     pub name: Option<String>,
     pub description: Option<String>,

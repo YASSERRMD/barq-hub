@@ -3,10 +3,8 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use crate::{Provider, router::SmartRouter, cost::CostManager};
-use crate::workflow::{StateStore, ToolRegistry};
-use crate::knowledge::{RAGEngine, VectorStore, embeddings::MockEmbedding};
+
 use crate::governance::{AuthService, RBACService, AuditService};
-use crate::agents::{AgentStore, registry::ProviderRegistry, runtime::AgentRuntime};
 use crate::providers::ProviderAccountManager;
 use crate::db::DbPool;
 use crate::db::ApplicationRepository;
@@ -16,21 +14,13 @@ pub struct AppState {
     pub router: Arc<SmartRouter>,
     pub cost_manager: Arc<CostManager>,
     pub providers: Arc<RwLock<Vec<Provider>>>,
+    pub http_client: reqwest::Client,
     pub start_time: std::time::Instant,
     pub version: String,
-    // Phase 2: Workflow
-    pub workflow_store: Arc<StateStore>,
-    pub tool_registry: Arc<ToolRegistry>,
-    // Phase 3: Knowledge
-    pub rag_engine: Arc<RAGEngine>,
     // Phase 4: Governance
     pub auth_service: Arc<AuthService>,
     pub rbac_service: Arc<RBACService>,
     pub audit_service: Arc<AuditService>,
-    // Agents with dynamic providers
-    pub agent_store: Arc<AgentStore>,
-    pub provider_registry: Arc<ProviderRegistry>,
-    pub agent_runtime: Arc<AgentRuntime>,
     // Provider account management
     pub account_manager: Arc<ProviderAccountManager>,
     // Database pool
@@ -48,24 +38,16 @@ impl AppState {
         
         let application_repo = Arc::new(ApplicationRepository::new(pool.clone()));
         
-        let router = Arc::new(SmartRouter::new(providers.clone()));
-        let workflow_store = Arc::new(StateStore::new());
-        let tool_registry = Arc::new(ToolRegistry::new());
-        
-        // Create RAG engine with mock embeddings
-        let embedding_provider = Arc::new(MockEmbedding::new(128));
-        let vector_store = Arc::new(VectorStore::new());
-        let rag_engine = Arc::new(RAGEngine::new(embedding_provider, vector_store));
-        
+        let http_client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(120))
+            .build()
+            .expect("Failed to create HTTP client");
+            
+        let router = Arc::new(SmartRouter::new(providers.clone(), http_client.clone()));
         // Governance services with database
         let auth_service = Arc::new(AuthService::with_pool(pool.clone()));
         let rbac_service = Arc::new(RBACService::new());
         let audit_service = Arc::new(AuditService::new());
-        
-        // Agent management
-        let agent_store = Arc::new(AgentStore::new());
-        let provider_registry = Arc::new(ProviderRegistry::new());
-        let agent_runtime = Arc::new(AgentRuntime::new(agent_store.clone(), provider_registry.clone()));
         
         // Provider account manager - load from database
         let account_manager = Arc::new(ProviderAccountManager::new());
@@ -83,18 +65,16 @@ impl AppState {
         Ok(Self {
             router,
             cost_manager: Arc::new(CostManager::new()),
-            providers: Arc::new(RwLock::new(providers)),
+            providers: Arc::new(RwLock::new(providers.clone())),
+            http_client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(120))
+                .build()
+                .expect("Failed to create HTTP client"),
             start_time: std::time::Instant::now(),
             version: env!("CARGO_PKG_VERSION").to_string(),
-            workflow_store,
-            tool_registry,
-            rag_engine,
             auth_service,
             rbac_service,
             audit_service,
-            agent_store,
-            provider_registry,
-            agent_runtime,
             account_manager,
             db_pool: Some(pool),
             application_repo: Some(application_repo),
@@ -103,47 +83,33 @@ impl AppState {
     
     /// Create new state without database (in-memory only)
     pub fn new(providers: Vec<Provider>) -> Self {
-        let router = Arc::new(SmartRouter::new(providers.clone()));
-        let workflow_store = Arc::new(StateStore::new());
-        let tool_registry = Arc::new(ToolRegistry::new());
-        
-        // Create RAG engine with mock embeddings
-        let embedding_model = Arc::new(MockEmbedding::new(128));
-        let vector_store = Arc::new(VectorStore::new());
-        let rag_engine = Arc::new(RAGEngine::new(embedding_model, vector_store));
+        let http_client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(120))
+            .build()
+            .expect("Failed to create HTTP client");
+
+        let router = Arc::new(SmartRouter::new(providers.clone(), http_client.clone()));
         
         // Services
         let auth_service = Arc::new(AuthService::new());
         let rbac_service = Arc::new(RBACService::new());
         let audit_service = Arc::new(AuditService::new());
         
-        // Agent runtime
-        let agent_store = Arc::new(AgentStore::new());
-        let provider_registry = Arc::new(ProviderRegistry::new());
-        // Populate registry with initial providers - skipping for now to avoid compilation error if register missing
-        
-        let agent_runtime = Arc::new(AgentRuntime::new(
-            agent_store.clone(),
-            provider_registry.clone(),
-        ));
-        
         let account_manager = ProviderAccountManager::new();
         
         Self {
             router,
             cost_manager: Arc::new(CostManager::new()),
-            providers: Arc::new(RwLock::new(providers)),
+            providers: Arc::new(RwLock::new(providers.clone())),
+            http_client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(120))
+                .build()
+                .expect("Failed to create HTTP client"),
             start_time: std::time::Instant::now(),
             version: env!("CARGO_PKG_VERSION").to_string(),
-            workflow_store,
-            tool_registry,
-            rag_engine,
             auth_service,
             rbac_service,
             audit_service,
-            agent_store,
-            provider_registry,
-            agent_runtime,
             account_manager: Arc::new(account_manager),
             db_pool: None,
             application_repo: None,
@@ -152,7 +118,7 @@ impl AppState {
 
     pub async fn reload_providers(&mut self, providers: Vec<Provider>) {
         *self.providers.write().await = providers.clone();
-        self.router = Arc::new(SmartRouter::new(providers));
+        self.router = Arc::new(SmartRouter::new(providers, self.http_client.clone()));
     }
 
     pub fn uptime_seconds(&self) -> u64 {

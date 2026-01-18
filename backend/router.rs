@@ -23,13 +23,13 @@ pub struct SmartRouter {
 
 impl SmartRouter {
     /// Create a new router with the given providers
-    pub fn new(providers: Vec<Provider>) -> Self {
+    pub fn new(providers: Vec<Provider>, client: reqwest::Client) -> Self {
         let adapters: Vec<_> = providers
             .into_iter()
             .filter(|p| p.enabled)
             .map(|p| {
                 let id = p.id.clone();
-                let adapter = create_adapter(p);
+                let adapter = create_adapter(p, client.clone());
                 (id, adapter)
             })
             .collect();
