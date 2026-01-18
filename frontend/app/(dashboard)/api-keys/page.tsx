@@ -49,6 +49,63 @@ export default function ApiKeysPage() {
         }
     };
 
+    const handleRotate = async (appId: string, appName: string) => {
+        if (!confirm(`Are you sure you want to rotate the key for "${appName}"? The old key will stop working immediately.`)) return;
+
+        try {
+            const data = await applicationsApi.rotateKey(appId);
+            // Show the new key
+            toast.success("API Key rotated successfully");
+            setCopied(appId); // Highlight/reuse copy logic concept if needed, or just show modal
+
+            // For rotation, we ideally want to show the new key to the user.
+            // The backend returns { api_key: "..." }
+            // Let's reuse the Create Success idea or a custom alert.
+            // For now, let's copy to clipboard automatically and notify.
+            navigator.clipboard.writeText(data.api_key);
+            toast.message("New API Key copied to clipboard", {
+                description: "Make sure to update your applications immediately."
+            });
+
+            fetchApps();
+        } catch (error) {
+            console.error("Failed to rotate key", error);
+            toast.error("Failed to rotate API key");
+        }
+    };
+
+    const openEdit = (app: Application) => {
+        setSelectedApp(app);
+        setNewApp({
+            name: app.name,
+            description: app.description || "",
+            rateLimit: app.rateLimit,
+            scopes: app.scopes
+        });
+        setIsEditOpen(true);
+    };
+
+    const handleUpdate = async () => {
+        if (!selectedApp) return;
+        setCreating(true);
+        try {
+            await applicationsApi.update(selectedApp.id, {
+                name: newApp.name,
+                description: newApp.description,
+                rateLimit: newApp.rateLimit,
+                scopes: newApp.scopes
+            });
+            toast.success("Application updated successfully");
+            setIsEditOpen(false);
+            fetchApps();
+        } catch (error) {
+            console.error("Failed to update", error);
+            toast.error("Failed to update application");
+        } finally {
+            setCreating(false);
+        }
+    };
+
     const handleCreate = async () => {
         if (!newApp.name) {
             toast.error("Name is required");
@@ -56,8 +113,16 @@ export default function ApiKeysPage() {
         }
         setCreating(true);
         try {
-            await applicationsApi.create(newApp);
+            const res = await applicationsApi.create(newApp);
             toast.success("API Key created successfully");
+
+            // Should show the key to user
+            // We can reuse a dialog or just copy it
+            navigator.clipboard.writeText(res.api_key);
+            toast.message("API Key copied to clipboard", {
+                description: "This is the only time you will see this key."
+            });
+
             setIsCreateOpen(false);
             setNewApp({ name: "", description: "", rateLimit: 60, scopes: ["read", "write"] });
             fetchApps();
@@ -106,7 +171,10 @@ export default function ApiKeysPage() {
                     <h1 className="text-2xl font-bold">API Keys</h1>
                     <p className="text-muted-foreground">Manage API access tokens and applications</p>
                 </div>
-                <Button onClick={() => setIsCreateOpen(true)} className="bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-shadow">
+                <Button onClick={() => {
+                    setNewApp({ name: "", description: "", rateLimit: 60, scopes: ["read", "write"] });
+                    setIsCreateOpen(true);
+                }} className="bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-shadow">
                     <Plus className="mr-2 h-4 w-4" />
                     Create API Key
                 </Button>
@@ -269,11 +337,20 @@ export default function ApiKeysPage() {
 
                                     {/* Actions */}
                                     <div className="flex gap-2">
-                                        <Button variant="outline" size="sm">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleRotate(app.id, app.name)}
+                                        >
                                             <RefreshCw className="w-4 h-4 mr-1" />
                                             Rotate
                                         </Button>
-                                        <Button variant="outline" size="icon" className="h-8 w-8">
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() => openEdit(app)}
+                                        >
                                             <Settings className="w-4 h-4" />
                                         </Button>
                                         <Button
@@ -345,6 +422,54 @@ export default function ApiKeysPage() {
                             className="bg-primary text-primary-foreground"
                         >
                             {creating ? "Creating..." : "Create Key"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Dialog */}
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Application</DialogTitle>
+                        <DialogDescription>
+                            Update settings for <strong>{selectedApp?.name}</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Application Name</Label>
+                            <Input
+                                placeholder="My Awesome App"
+                                value={newApp.name}
+                                onChange={(e) => setNewApp({ ...newApp, name: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Description</Label>
+                            <Input
+                                placeholder="Used for backend integration..."
+                                value={newApp.description}
+                                onChange={(e) => setNewApp({ ...newApp, description: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Rate Limit (requests/min)</Label>
+                            <Input
+                                type="number"
+                                value={newApp.rateLimit}
+                                onChange={(e) => setNewApp({ ...newApp, rateLimit: parseInt(e.target.value) || 60 })}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+                        <Button
+                            onClick={handleUpdate}
+                            disabled={creating || !newApp.name}
+                            className="bg-primary text-primary-foreground"
+                        >
+                            {creating ? "Saving..." : "Save Changes"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

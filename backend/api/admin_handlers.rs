@@ -583,6 +583,7 @@ pub async fn create_application(
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateApplicationRequest {
     pub name: Option<String>,
     pub description: Option<String>,

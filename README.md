@@ -85,14 +85,44 @@ Configuration is handled via environment variables. Copy `.env.example` to `.env
 | `JWT_SECRET` | Secret key for JWT generation |
 | `ENCRYPTION_KEY` | Key for sensitive data encryption |
 
+## How to Use
+
+### 1. Identity & Access Management
+BARQ HUB uses a robust RBAC system.
+- **Users**: Manage team members in `Users` page.
+- **Roles**: Define granular permissions in `Roles` page.
+- **API Keys**: Create application-specific keys in `API Keys` page.
+  - Click `+ Create API Key`
+  - Set a rate limit (e.g., 60 req/min)
+  - Copy the key immediately (it won't be shown again)
+  - Use this key in the `Authorization: Bearer <KEY>` header for your apps.
+
+### 2. Managing LLM Providers
+Navigate to the **Providers** page to configure upstream AI services.
+- **Enable/Disable**: Toggle providers on/off instantly.
+- **Configuration**: Click `Edit` to update API keys or base URLs.
+- **Load Balancing**: The system automatically load-balances between available accounts for the same provider.
+
+### 3. Interactive Playground
+Test your models before integrating them.
+- Go to `Playground`
+- Select a Provider (e.g., OpenAI, Groq) and a Model.
+- Type your prompt and view the response, token usage, and estimated cost in real-time.
+- Use the **Integration Code** tab to generate snippets for Python, Node.js, and cURL.
+
 ## API Documentation
 
 The REST API is available at `http://localhost:4000/v1`.
 
 ### Key Endpoints
-- **Chat**: `POST /v1/chat/completions` (OpenAI-compatible)
+- **Chat Completions**: `POST /v1/chat/completions`
+  ```json
+  {
+    "model": "gpt-4",
+    "messages": [{"role": "user", "content": "Hello"}]
+  }
+  ```
 - **Models**: `GET /v1/models`
 - **Costs**: `GET /v1/costs`
 
-
-
+*Full OpenAPI specification available at `/swagger-ui` (coming soon).*
