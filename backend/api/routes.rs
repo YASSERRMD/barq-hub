@@ -7,7 +7,7 @@ use tower_http::trace::TraceLayer;
 use tower_http::compression::CompressionLayer;
 
 use super::{handlers, state::AppState, middleware::logging_middleware};
-use super::{governance_handlers, provider_handlers, admin_handlers, voice_handlers, settings_handlers};
+use super::{governance_handlers, provider_handlers, admin_handlers, settings_handlers};
 
 /// Create the API router with all routes
 pub fn create_router(state: Arc<AppState>) -> Router {
@@ -77,20 +77,7 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/admin/applications/scopes", get(admin_handlers::list_api_scopes))
         .route("/admin/applications/:app_id", put(admin_handlers::update_application))
         .route("/admin/applications/:app_id", delete(admin_handlers::delete_application))
-        .route("/admin/applications/:app_id/rotate", post(admin_handlers::rotate_application_key))
-        // Voice: TTS (Text-to-Speech)
-        .route("/voice/tts/providers", get(voice_handlers::list_tts_providers))
-        .route("/voice/tts/providers/:provider_id/voices", get(voice_handlers::list_tts_voices))
-        .route("/voice/tts/synthesize", post(voice_handlers::synthesize_speech))
-        // Voice: STT (Speech-to-Text)
-        .route("/voice/stt/providers", get(voice_handlers::list_stt_providers))
-        .route("/voice/stt/providers/:provider_id/models", get(voice_handlers::list_stt_models))
-        .route("/voice/stt/transcribe", post(voice_handlers::transcribe_audio))
-        // Voice: Languages
-        .route("/voice/languages", get(voice_handlers::get_supported_languages))
-        // Voice: WebRTC
-        .route("/voice/webrtc/sessions", post(voice_handlers::create_webrtc_session))
-        .route("/voice/webrtc/sessions/:session_id", get(voice_handlers::get_webrtc_session));
+        .route("/admin/applications/:app_id/rotate", post(admin_handlers::rotate_application_key));
 
     Router::new()
         .route("/health", get(handlers::health_check))

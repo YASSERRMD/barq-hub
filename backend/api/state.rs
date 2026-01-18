@@ -145,7 +145,7 @@ async fn load_accounts_from_db(pool: &crate::db::DbPool) -> Result<Vec<crate::pr
         
         // Create account with basic ApiKey config (API key is encrypted in DB)
         let config = AccountConfig::ApiKey(ApiKeyConfig {
-            api_key: row.api_key_encrypted.clone(), // In production, this would be decrypted
+            api_key: row.api_key_encrypted.clone().unwrap_or_default(), // In production, this would be decrypted
             organization_id: None,
             custom_endpoint: row.endpoint.clone(),
         });

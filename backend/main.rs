@@ -70,9 +70,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let chat_service = ChatServiceImpl::new(state.clone(), auth.clone());
         let models_service = ModelsServiceImpl::new(state.clone(), auth.clone());
 
+        let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+        
+        // Mark services as serving
+        // We can't await here easily if we want to return the future, but usually we just add the service.
+        // Actually set_serving is async. We are in async main, so we can await.
+        // But need to know the service names.
+        // tonic_health uses the package.Service name, e.g. "barq.ChatService"
+        health_reporter.set_serving::<ChatServiceServer<ChatServiceImpl>>().await;
+        health_reporter.set_serving::<ModelsServiceServer<ModelsServiceImpl>>().await;
+
         tracing::info!("gRPC server listening on {}", grpc_addr);
         
         Some(Server::builder()
+            .add_service(health_service)
             .add_service(ChatServiceServer::new(chat_service))
             .add_service(ModelsServiceServer::new(models_service))
             .serve(grpc_addr))

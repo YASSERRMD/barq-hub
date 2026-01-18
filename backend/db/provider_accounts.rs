@@ -10,7 +10,7 @@ pub struct ProviderAccountRow {
     pub id: String,
     pub provider_id: String,
     pub name: String,
-    pub api_key_encrypted: String,
+    pub api_key_encrypted: Option<String>,
     pub enabled: bool,
     pub is_default: bool,
     pub priority: i32,
@@ -19,6 +19,7 @@ pub struct ProviderAccountRow {
     pub deployment_name: Option<String>,
     pub quota_config: JsonValue,
     pub models: JsonValue,
+    pub config: JsonValue,
     pub metadata: JsonValue,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -44,11 +45,12 @@ impl ProviderAccountRepository {
         deployment_name: Option<&str>,
         models: &JsonValue,
         quota_config: &JsonValue,
+        config: &JsonValue,
     ) -> Result<ProviderAccountRow, sqlx::Error> {
         sqlx::query_as::<_, ProviderAccountRow>(
             r#"
-            INSERT INTO provider_accounts (id, provider_id, name, api_key_encrypted, endpoint, region, deployment_name, models, quota_config, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+            INSERT INTO provider_accounts (id, provider_id, name, api_key_encrypted, endpoint, region, deployment_name, models, quota_config, config, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
             RETURNING *
             "#
         )
@@ -61,6 +63,7 @@ impl ProviderAccountRepository {
         .bind(deployment_name)
         .bind(models)
         .bind(quota_config)
+        .bind(config)
         .fetch_one(&self.pool)
         .await
     }
@@ -137,15 +140,17 @@ impl ProviderAccountRepository {
         priority: i32,
         models: &JsonValue,
         quota_config: &JsonValue,
+        config: &JsonValue,
     ) -> Result<bool, sqlx::Error> {
         let result = sqlx::query(
-            "UPDATE provider_accounts SET name = $1, enabled = $2, priority = $3, models = $4, quota_config = $5, updated_at = NOW() WHERE id = $6"
+            "UPDATE provider_accounts SET name = $1, enabled = $2, priority = $3, models = $4, quota_config = $5, config = $6, updated_at = NOW() WHERE id = $7"
         )
         .bind(name)
         .bind(enabled)
         .bind(priority)
         .bind(models)
         .bind(quota_config)
+        .bind(config)
         .bind(id)
         .execute(&self.pool)
         .await?;
