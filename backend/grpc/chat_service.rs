@@ -208,9 +208,138 @@ impl ChatService for ChatServiceImpl {
 
     async fn complete_stream(
         &self,
-        _request: Request<ChatRequest>,
+        request: Request<ChatRequest>,
     ) -> Result<Response<Self::CompleteStreamStream>, Status> {
-        Err(Status::unimplemented("Streaming not yet implemented"))
+        let req = request.into_inner();
+        let (tx, rx) = tokio::sync::mpsc::channel(32);
+
+        // Get provider account from database
+        let provider_id = req.provider.clone().unwrap_or_else(|| "openai".to_string());
+        
+        let (api_key, base_url, _provider_name) = if let Some(ref pool) = self.state.db_pool {
+            let repo = ProviderAccountRepository::new(pool.clone());
+            
+            if let Ok(Some(account)) = repo.get_default(&provider_id).await {
+                let key = account.api_key_encrypted.clone().unwrap_or_default();
+                let url = get_provider_base_url(&provider_id, account.endpoint.as_deref());
+                (key, url, account.name.clone())
+            } else if let Ok(accounts) = repo.list_by_provider(&provider_id).await {
+                if let Some(account) = accounts.into_iter().find(|a| a.enabled && !a.api_key_encrypted.clone().unwrap_or_default().is_empty()) {
+                    let key = account.api_key_encrypted.clone().unwrap_or_default();
+                    let url = get_provider_base_url(&provider_id, account.endpoint.as_deref());
+                    (key, url, account.name.clone())
+                } else {
+                    return Err(Status::not_found("No enabled account found for provider"));
+                }
+            } else {
+                return Err(Status::not_found("Provider not found"));
+            }
+        } else {
+            return Err(Status::unavailable("Database not available"));
+        };
+
+        if api_key.is_empty() {
+            return Err(Status::unauthenticated("No API key configured for provider"));
+        }
+
+        let model = req.model.clone();
+        let messages = req.messages.clone();
+        let temperature = req.temperature.unwrap_or(0.7);
+        let max_tokens = req.max_tokens.unwrap_or(2048);
+        let http_client = self.state.http_client.clone();
+
+        // Spawn task to handle streaming
+        tokio::spawn(async move {
+            let url = format!("{}/chat/completions", base_url);
+            
+            let payload = serde_json::json!({
+                "model": model,
+                "messages": messages.iter().map(|m| {
+                    serde_json::json!({
+                        "role": m.role,
+                        "content": m.content
+                    })
+                }).collect::<Vec<_>>(),
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "stream": true
+            });
+
+            let response = http_client
+                .post(&url)
+                .header("Authorization", format!("Bearer {}", api_key))
+                .header("Content-Type", "application/json")
+                .json(&payload)
+                .send()
+                .await;
+
+            match response {
+                Ok(resp) => {
+                    if !resp.status().is_success() {
+                        let _ = tx.send(Err(Status::internal(format!("Provider error: {}", resp.status())))).await;
+                        return;
+                    }
+
+                    let mut stream = resp.bytes_stream();
+                    use futures_util::StreamExt;
+                    
+                    let mut buffer = String::new();
+                    let stream_id = uuid::Uuid::new_v4().to_string();
+
+                    while let Some(chunk_result) = stream.next().await {
+                        match chunk_result {
+                            Ok(bytes) => {
+                                buffer.push_str(&String::from_utf8_lossy(&bytes));
+                                
+                                // Process complete SSE lines
+                                while let Some(line_end) = buffer.find('\n') {
+                                    let line = buffer[..line_end].trim().to_string();
+                                    buffer = buffer[line_end + 1..].to_string();
+                                    
+                                    if line.starts_with("data: ") {
+                                        let data = &line[6..];
+                                        if data == "[DONE]" {
+                                            let _ = tx.send(Ok(ChatChunk {
+                                                id: stream_id.clone(),
+                                                delta: String::new(),
+                                                done: true,
+                                            })).await;
+                                            return;
+                                        }
+                                        
+                                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                                            if let Some(delta) = json["choices"][0]["delta"]["content"].as_str() {
+                                                let _ = tx.send(Ok(ChatChunk {
+                                                    id: stream_id.clone(),
+                                                    delta: delta.to_string(),
+                                                    done: false,
+                                                })).await;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                let _ = tx.send(Err(Status::internal(format!("Stream error: {}", e)))).await;
+                                return;
+                            }
+                        }
+                    }
+
+                    // Send done signal if not already sent
+                    let _ = tx.send(Ok(ChatChunk {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        delta: String::new(),
+                        done: true,
+                    })).await;
+                }
+                Err(e) => {
+                    let _ = tx.send(Err(Status::internal(format!("Request failed: {}", e)))).await;
+                }
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
     }
 }
 
