@@ -4,7 +4,7 @@ node_modules/
 .pnp.js
 
 # Build outputs
-/target/
+target/
 /frontend/.next/
 /frontend/out/
 *.pdb
