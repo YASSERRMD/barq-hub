@@ -1006,12 +1006,12 @@ export default function ProvidersPage() {
                         const isConfigured = accountCount > 0;
 
                         return (
-                            <Card key={provider.id} className="relative overflow-hidden transition-all hover:shadow-lg dark:hover:shadow-primary/5 border-muted/60 dark:bg-slate-950/50">
+                            <Card key={provider.id} className="relative overflow-hidden border-muted/60 dark:bg-slate-950/50">
 
                                 <div className="relative p-6 space-y-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center gap-4">
-                                            <div className="p-2.5 rounded-xl bg-background/80 backdrop-blur-sm shadow-sm ring-1 ring-border/50 transition-transform group-hover:scale-110 duration-300">
+                                            <div className="p-2.5 rounded-xl bg-background/80 backdrop-blur-sm shadow-sm ring-1 ring-border/50">
                                                 {getProviderLogo(provider.id, "w-8 h-8")}
                                             </div>
                                             <div>
