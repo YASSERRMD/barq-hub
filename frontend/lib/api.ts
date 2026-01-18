@@ -133,19 +133,19 @@ export const embeddingsApi = {
 // Users API
 export const usersApi = {
     list: async () => {
-        const response = await api.get("/users");
+        const response = await api.get("/admin/users");
         return response.data;
     },
     get: async (id: string) => {
-        const response = await api.get(`/users/${id}`);
+        const response = await api.get(`/admin/users/${id}`);
         return response.data;
     },
     update: async (id: string, data: any) => {
-        const response = await api.put(`/users/${id}`, data);
+        const response = await api.put(`/admin/users/${id}`, data);
         return response.data;
     },
     delete: async (id: string) => {
-        const response = await api.delete(`/users/${id}`);
+        const response = await api.delete(`/admin/users/${id}`);
         return response.data;
     },
 };
@@ -173,7 +173,7 @@ export const rolesApi = {
 // Audit Logs API
 export const auditApi = {
     list: async (params?: { page?: number; limit?: number; action?: string }) => {
-        const response = await api.get("/audit-logs", { params });
+        const response = await api.get("/audit", { params });
         return response.data;
     },
 };
@@ -181,7 +181,7 @@ export const auditApi = {
 // Health API
 export const healthApi = {
     check: async () => {
-        const response = await api.get("/health");
+        const response = await api.get("/admin/health");
         return response.data;
     },
 };
@@ -189,11 +189,11 @@ export const healthApi = {
 // Billing API
 export const billingApi = {
     getUsage: async (params?: { start?: string; end?: string }) => {
-        const response = await api.get("/billing/usage", { params });
+        const response = await api.get("/costs", { params });
         return response.data;
     },
     getCosts: async (params?: { start?: string; end?: string }) => {
-        const response = await api.get("/billing/costs", { params });
+        const response = await api.get("/costs", { params });
         return response.data;
     },
 };
