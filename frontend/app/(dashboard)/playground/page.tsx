@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -67,8 +67,14 @@ export default function PlaygroundPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [loadingProviders, setLoadingProviders] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
+
+    // Auto-scroll to bottom when messages change
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages, isLoading]);
 
     // Fetch providers from database
     useEffect(() => {
@@ -457,8 +463,8 @@ curl -X POST "${apiUrl}/chat/completions" \\
                     )}
 
                     {/* Chat Messages */}
-                    <Card className="min-h-[400px] flex flex-col">
-                        <CardContent className="flex-1 p-4 space-y-4 overflow-y-auto">
+                    <Card className="h-[500px] flex flex-col">
+                        <CardContent className="flex-1 p-4 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100% - 72px)' }}>
                             {messages.length === 0 ? (
                                 <div className="h-full flex items-center justify-center text-muted-foreground">
                                     <div className="text-center space-y-2">
@@ -505,6 +511,7 @@ curl -X POST "${apiUrl}/chat/completions" \\
                                     </div>
                                 </div>
                             )}
+                            <div ref={messagesEndRef} />
                         </CardContent>
 
                         {/* Input */}
