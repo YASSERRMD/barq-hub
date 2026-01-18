@@ -82,4 +82,4 @@ strip = true
 
 [[bin]]
 name = "barq-hub"
-path = "backend/main.rs"
+path = "src/main.rs"
