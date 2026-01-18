@@ -41,7 +41,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend
+      dockerfile: backend/Dockerfile
     container_name: barq-backend
     restart: unless-stopped
     environment:
