@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package barq;
+
+// Chat service for LLM completions
+service ChatService {
+  // Single completion request
+  rpc Complete(ChatRequest) returns (ChatResponse);
+  
+  // Streaming completion request
+  rpc CompleteStream(ChatRequest) returns (stream ChatChunk);
+}
+
+// Models service for listing available models
+service ModelsService {
+  rpc List(ListModelsRequest) returns (ListModelsResponse);
+}
+
+message ChatRequest {
+  string model = 1;
+  repeated Message messages = 2;
+  optional string provider = 3;
+  optional float temperature = 4;
+  optional int32 max_tokens = 5;
+}
+
+message Message {
+  string role = 1;
+  string content = 2;
+}
+
+message ChatResponse {
+  string id = 1;
+  string model = 2;
+  string content = 3;
+  int32 input_tokens = 4;
+  int32 output_tokens = 5;
+  string provider = 6;
+}
+
+message ChatChunk {
+  string id = 1;
+  string delta = 2;
+  bool done = 3;
+}
+
+message ListModelsRequest {}
+
+message ListModelsResponse {
+  repeated Model models = 1;
+}
+
+message Model {
+  string id = 1;
+  string name = 2;
+  string provider = 3;
+}

@@ -15,6 +15,7 @@ pub mod config;
 pub mod error;
 pub mod governance;
 pub mod db;
+pub mod grpc;
 
 pub use types::*;
 pub use error::*;

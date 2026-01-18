@@ -233,4 +233,23 @@ impl ApplicationRepository {
             .await?;
         Ok(row.0)
     }
+
+    /// Validate an API key by hashing and looking up in database
+    pub async fn validate_api_key(&self, raw_key: &str) -> Result<Option<ApplicationRow>, sqlx::Error> {
+        use md5::{Md5, Digest};
+        
+        // Hash the incoming key
+        let mut hasher = Md5::new();
+        hasher.update(raw_key.as_bytes());
+        let key_hash = format!("{:x}", hasher.finalize());
+
+        // Look up by hash
+        sqlx::query_as::<_, ApplicationRow>(
+            "SELECT * FROM applications WHERE api_key_hash = $1"
+        )
+        .bind(&key_hash)
+        .fetch_optional(&self.pool)
+        .await
+    }
 }
+
