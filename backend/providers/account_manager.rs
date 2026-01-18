@@ -413,15 +413,6 @@ impl ProviderAccountManager {
              vec!["voyage-3", "voyage-3-lite", "voyage-code-3"]),
             ("jina", "Jina AI", ProviderType::Embedding, false, false,
              vec!["jina-embeddings-v3", "jina-clip-v2"]),
-             // Newly added providers
-            ("local", "Local (Ollama/vLLM)", ProviderType::Both, false, false,
-             vec!["llama3", "mistral", "gemma", "qwen"]),
-            ("perplexity", "Perplexity AI", ProviderType::Llm, false, false,
-             vec!["llama-3-sonar-large-32k-online", "llama-3-sonar-small-32k-chat"]),
-            ("deepseek", "DeepSeek", ProviderType::Llm, false, false,
-             vec!["deepseek-chat", "deepseek-coder"]),
-            ("openrouter", "OpenRouter", ProviderType::Both, false, false,
-             vec!["openai/gpt-4o", "anthropic/claude-3.5-sonnet", "google/gemini-pro-1.5"]),
         ];
         
         for (id, name, ptype, azure, aws, models) in llm_providers {

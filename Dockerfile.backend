@@ -9,7 +9,7 @@ WORKDIR /app
 COPY Cargo.toml ./
 
 # Copy source
-COPY src ./src
+COPY backend ./src
 
 # Build for release
 # ENV OPENSSL_STATIC=1 (Not needed for dynamic linking on debian)

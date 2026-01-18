@@ -1,4 +1,4 @@
-//! SYNAPSE Brain - Enterprise AI Orchestration Platform
+//! BARQ HUB - AI Management Console
 //!
 //! A complete AI orchestration platform with:
 //! - Multi-provider LLM gateway (Phase 1)

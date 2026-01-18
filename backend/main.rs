@@ -1,11 +1,11 @@
-//! SYNAPSE Brain - Enterprise AI Orchestration Platform
+//! BARQ HUB - AI Management Console
 //!
 //! Main entry point for the server.
 
 use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use synapse_brain::{
+use barq_hub::{
     api::{create_router, AppState},
     config::Config,
     Provider, ProviderPricing, ProviderType, ProviderHealth,
@@ -16,11 +16,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::try_from_default_env()
-            .unwrap_or_else(|_| "synapse_brain=info,tower_http=info".into()))
+            .unwrap_or_else(|_| "barq_hub=info,tower_http=info".into()))
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    tracing::info!("Starting SYNAPSE Brain v{}", env!("CARGO_PKG_VERSION"));
+    tracing::info!("Starting BARQ HUB v{}", env!("CARGO_PKG_VERSION"));
 
     // Load configuration
     let config = Config::load().expect("Failed to load configuration");
