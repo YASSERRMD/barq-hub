@@ -266,51 +266,89 @@ pub struct HealthResponse {
 
 pub async fn get_system_health(State(state): State<Arc<AppState>>) -> Json<HealthResponse> {
     let now = Utc::now();
+    let mut services = Vec::new();
     
-    // Check service health
-    let services = vec![
-        ServiceHealth {
-            name: "Backend API".to_string(),
-            status: "healthy".to_string(),
-            latency_ms: 5,
-            details: "All endpoints responding".to_string(),
-            last_check: now,
-        },
-        ServiceHealth {
-            name: "PostgreSQL".to_string(),
-            status: "healthy".to_string(),
-            latency_ms: 3,
-            details: "Connected".to_string(),
-            last_check: now,
-        },
-        ServiceHealth {
-            name: "Redis".to_string(),
-            status: "healthy".to_string(),
-            latency_ms: 1,
-            details: "Connected".to_string(),
-            last_check: now,
-        },
-        ServiceHealth {
-            name: "Qdrant".to_string(),
-            status: "healthy".to_string(),
-            latency_ms: 8,
-            details: "Vector store connected".to_string(),
-            last_check: now,
-        },
-    ];
+    // Backend API is always healthy if we're responding
+    services.push(ServiceHealth {
+        name: "Backend API".to_string(),
+        status: "healthy".to_string(),
+        latency_ms: 1,
+        details: "Responding to requests".to_string(),
+        last_check: now,
+    });
+    
+    // Check PostgreSQL connection
+    let (pg_status, pg_details, pg_latency) = if let Some(ref pool) = state.db_pool {
+        let start = std::time::Instant::now();
+        match sqlx::query("SELECT 1").fetch_one(pool).await {
+            Ok(_) => {
+                let latency = start.elapsed().as_millis() as u64;
+                ("healthy".to_string(), "Connected".to_string(), latency)
+            },
+            Err(e) => ("down".to_string(), format!("Error: {}", e), 0),
+        }
+    } else {
+        ("down".to_string(), "Not configured".to_string(), 0)
+    };
+    
+    services.push(ServiceHealth {
+        name: "PostgreSQL".to_string(),
+        status: pg_status,
+        latency_ms: pg_latency,
+        details: pg_details,
+        last_check: now,
+    });
+    
+    // Check Redis connection (if present)
+    let (redis_status, redis_details) = if state.redis_client.is_some() {
+        ("healthy".to_string(), "Connected".to_string())
+    } else {
+        ("down".to_string(), "Not configured".to_string())
+    };
+    
+    services.push(ServiceHealth {
+        name: "Redis".to_string(),
+        status: redis_status,
+        latency_ms: 0,
+        details: redis_details,
+        last_check: now,
+    });
+    
+    // Check LLM Providers
+    let provider_count = state.account_manager.list_providers().await.len();
+    let (provider_status, provider_details) = if provider_count > 0 {
+        ("healthy".to_string(), format!("{} providers loaded", provider_count))
+    } else {
+        ("degraded".to_string(), "No providers configured".to_string())
+    };
+    
+    services.push(ServiceHealth {
+        name: "LLM Providers".to_string(),
+        status: provider_status,
+        latency_ms: 0,
+        details: provider_details,
+        last_check: now,
+    });
     
     let all_healthy = services.iter().all(|s| s.status == "healthy");
+    let any_down = services.iter().any(|s| s.status == "down");
     
-    let active_sessions = 0; // Would come from session tracking
+    let overall_status = if all_healthy {
+        "healthy"
+    } else if any_down {
+        "degraded"
+    } else {
+        "degraded"
+    };
     
     Json(HealthResponse {
-        status: if all_healthy { "healthy".to_string() } else { "degraded".to_string() },
+        status: overall_status.to_string(),
         services,
         metrics: SystemMetrics {
             uptime_seconds: state.uptime_seconds(),
-            total_requests: 0, // Would come from metrics
-            active_sessions,
-            active_accounts: state.account_manager.list_providers().await.len(),
+            total_requests: 0, // Would come from metrics counter
+            active_sessions: 0,
+            active_accounts: provider_count,
         },
     })
 }
