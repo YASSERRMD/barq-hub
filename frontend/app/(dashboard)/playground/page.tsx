@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
     Select,
     SelectContent,
@@ -26,25 +28,35 @@ import {
     Zap,
     Settings,
     Terminal,
+    AlertCircle,
+    RefreshCw,
 } from "lucide-react";
 
 interface Message {
-    role: "user" | "assistant";
+    role: "user" | "assistant" | "system";
     content: string;
 }
 
-const providers = [
-    { id: "openai", name: "OpenAI", models: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"] },
-    { id: "anthropic", name: "Anthropic", models: ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku"] },
-    { id: "google", name: "Google AI", models: ["gemini-1.5-pro", "gemini-1.5-flash"] },
-    { id: "cohere", name: "Cohere", models: ["command-r-plus", "command-r"] },
-];
+interface ProviderAccount {
+    id: string;
+    name: string;
+    provider_id: string;
+    enabled: boolean;
+    models: { id: string; name: string; capability: string }[];
+}
+
+interface Provider {
+    id: string;
+    name: string;
+    accounts: ProviderAccount[];
+}
 
 export default function PlaygroundPage() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
-    const [selectedProvider, setSelectedProvider] = useState("openai");
-    const [selectedModel, setSelectedModel] = useState("gpt-4o");
+    const [providers, setProviders] = useState<Provider[]>([]);
+    const [selectedProvider, setSelectedProvider] = useState("");
+    const [selectedModel, setSelectedModel] = useState("");
     const [temperature, setTemperature] = useState(0.7);
     const [maxTokens, setMaxTokens] = useState(2048);
     const [systemPrompt, setSystemPrompt] = useState("You are a helpful AI assistant.");
@@ -53,30 +65,106 @@ export default function PlaygroundPage() {
     const [selectedLanguage, setSelectedLanguage] = useState("python");
     const [showSettings, setShowSettings] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingProviders, setLoadingProviders] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const currentProvider = providers.find(p => p.id === selectedProvider);
-    const baseUrl = "http://localhost:4000/v1";
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
-    const handleSend = async () => {
-        if (!input.trim()) return;
+    // Fetch providers from database
+    useEffect(() => {
+        fetchProviders();
+    }, []);
 
-        const userMessage: Message = { role: "user", content: input };
-        setMessages(prev => [...prev, userMessage]);
-        setInput("");
-        setIsLoading(true);
+    const fetchProviders = async () => {
+        setLoadingProviders(true);
+        try {
+            const response = await fetch(`${apiUrl}/provider-accounts/providers`);
+            if (response.ok) {
+                const data = await response.json();
+                setProviders(data);
 
-        // Demo response
-        setTimeout(() => {
-            const assistantMessage: Message = {
-                role: "assistant",
-                content: `**Demo Mode** | Using ${currentProvider?.name} (${selectedModel})\n\nThis is a simulated response. To get real AI responses:\n\n1. Configure your provider's API key in **Providers**\n2. Start the backend server\n\nYour message: "${userMessage.content}"\n\nIn production, this would be a real response from the ${selectedModel} model.`,
-            };
-            setMessages(prev => [...prev, assistantMessage]);
-            setIsLoading(false);
-        }, 1000);
+                // Auto-select first provider with accounts and models
+                const firstWithModels = data.find((p: Provider) =>
+                    p.accounts?.some((a: ProviderAccount) => a.enabled && a.models?.length > 0)
+                );
+                if (firstWithModels) {
+                    setSelectedProvider(firstWithModels.id);
+                    const firstAccount = firstWithModels.accounts.find((a: ProviderAccount) => a.enabled && a.models?.length > 0);
+                    if (firstAccount?.models?.[0]) {
+                        setSelectedModel(firstAccount.models[0].id || firstAccount.models[0].name);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Failed to fetch providers:", err);
+        } finally {
+            setLoadingProviders(false);
+        }
     };
 
-    const clearChat = () => setMessages([]);
+    // Get current provider and its models
+    const currentProvider = providers.find(p => p.id === selectedProvider);
+    const availableModels = currentProvider?.accounts
+        ?.filter(a => a.enabled)
+        ?.flatMap(a => a.models || []) || [];
+
+    const handleSend = async () => {
+        if (!input.trim() || !selectedModel) return;
+
+        const userMessage: Message = { role: "user", content: input };
+        const newMessages = [...messages, userMessage];
+        setMessages(newMessages);
+        setInput("");
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            // Build messages with system prompt
+            const apiMessages = [
+                { role: "system", content: systemPrompt },
+                ...newMessages.filter(m => m.role !== "system")
+            ];
+
+            const response = await fetch(`${apiUrl}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: selectedModel,
+                    provider: selectedProvider,
+                    messages: apiMessages,
+                    temperature,
+                    max_tokens: maxTokens,
+                }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error?.message || errData.message || `API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const assistantContent = data.choices?.[0]?.message?.content || "No response received";
+
+            setMessages(prev => [...prev, { role: "assistant", content: assistantContent }]);
+        } catch (err: any) {
+            console.error("Chat error:", err);
+            setError(err.message || "Failed to get response");
+            // Add error message to chat
+            setMessages(prev => [...prev, {
+                role: "assistant",
+                content: `❌ **Error:** ${err.message}\n\nPlease check:\n- Provider API key is configured correctly\n- Model is available for your account\n- Backend server is running`
+            }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const clearChat = () => {
+        setMessages([]);
+        setError(null);
+    };
 
     const copyToClipboard = (text: string, snippetId: string) => {
         navigator.clipboard.writeText(text);
@@ -91,8 +179,8 @@ export default function PlaygroundPage() {
             code: `import requests
 
 # BARQ API Configuration
-API_KEY = "your-api-key"  # Get from Applications
-BASE_URL = "${baseUrl}"
+API_KEY = "your-api-key"  # Get from API Keys page
+BASE_URL = "${apiUrl}"
 
 headers = {
     "Authorization": f"Bearer {API_KEY}",
@@ -119,23 +207,14 @@ result = chat([
     {"role": "system", "content": "${systemPrompt}"},
     {"role": "user", "content": "Hello!"}
 ])
-print(result["choices"][0]["message"]["content"])
-
-# Embeddings
-def embed(texts, model="text-embedding-3-small"):
-    response = requests.post(
-        f"{BASE_URL}/embeddings",
-        headers=headers,
-        json={"model": model, "input": texts}
-    )
-    return response.json()`,
+print(result["choices"][0]["message"]["content"])`,
         },
         javascript: {
             label: "JavaScript",
             icon: "🟨",
             code: `// BARQ API Client
-const API_KEY = 'your-api-key';  // Get from Applications
-const BASE_URL = '${baseUrl}';
+const API_KEY = 'your-api-key';  // Get from API Keys page
+const BASE_URL = '${apiUrl}';
 
 const headers = {
   'Authorization': \`Bearer \${API_KEY}\`,
@@ -163,80 +242,13 @@ const result = await chat([
   { role: 'system', content: '${systemPrompt}' },
   { role: 'user', content: 'Hello!' }
 ]);
-console.log(result.choices[0].message.content);
-
-// Embeddings
-async function embed(texts, model = 'text-embedding-3-small') {
-  const response = await fetch(\`\${BASE_URL}/embeddings\`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ model, input: texts })
-  });
-  return response.json();
-}`,
-        },
-        typescript: {
-            label: "TypeScript",
-            icon: "🔷",
-            code: `// BARQ API Client with TypeScript
-interface Message {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
-
-interface ChatResponse {
-  choices: { message: { content: string } }[];
-  usage: { prompt_tokens: number; completion_tokens: number };
-}
-
-class BarqClient {
-  private apiKey: string;
-  private baseUrl: string;
-
-  constructor(apiKey: string, baseUrl = '${baseUrl}') {
-    this.apiKey = apiKey;
-    this.baseUrl = baseUrl;
-  }
-
-  private get headers() {
-    return {
-      'Authorization': \`Bearer \${this.apiKey}\`,
-      'Content-Type': 'application/json'
-    };
-  }
-
-  async chat(
-    messages: Message[], 
-    model = '${selectedModel}',
-    provider = '${selectedProvider}'
-  ): Promise<ChatResponse> {
-    const response = await fetch(\`\${this.baseUrl}/chat/completions\`, {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify({
-        model,
-        provider,
-        messages,
-        temperature: ${temperature},
-        max_tokens: ${maxTokens}
-      })
-    });
-    return response.json();
-  }
-}
-
-// Usage with ${currentProvider?.name || selectedProvider}
-const client = new BarqClient('your-api-key');
-const result = await client.chat([
-  { role: 'system', content: '${systemPrompt}' },
-  { role: 'user', content: 'Hello!' }
-]);`,
+console.log(result.choices[0].message.content);`,
         },
         curl: {
             label: "cURL",
             icon: "🌀",
             code: `# Chat Completion with ${currentProvider?.name || selectedProvider}
-curl -X POST "${baseUrl}/chat/completions" \\
+curl -X POST "${apiUrl}/chat/completions" \\
   -H "Authorization: Bearer your-api-key" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -248,127 +260,7 @@ curl -X POST "${baseUrl}/chat/completions" \\
     ],
     "temperature": ${temperature},
     "max_tokens": ${maxTokens}
-  }'
-
-# Embeddings
-curl -X POST "${baseUrl}/embeddings" \\
-  -H "Authorization: Bearer your-api-key" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "text-embedding-3-small",
-    "input": ["Hello world", "Another text"]
   }'`,
-        },
-        go: {
-            label: "Go",
-            icon: "🐹",
-            code: `package main
-
-import (
-    "bytes"
-    "encoding/json"
-    "fmt"
-    "net/http"
-)
-
-const (
-    APIKey  = "your-api-key"
-    BaseURL = "${baseUrl}"
-)
-
-type Message struct {
-    Role    string \`json:"role"\`
-    Content string \`json:"content"\`
-}
-
-type ChatRequest struct {
-    Model       string    \`json:"model"\`
-    Provider    string    \`json:"provider"\`
-    Messages    []Message \`json:"messages"\`
-    Temperature float64   \`json:"temperature"\`
-    MaxTokens   int       \`json:"max_tokens"\`
-}
-
-// Usage with ${currentProvider?.name || selectedProvider}
-func main() {
-    messages := []Message{
-        {Role: "system", Content: "${systemPrompt}"},
-        {Role: "user", Content: "Hello!"},
-    }
-    
-    reqBody := ChatRequest{
-        Model:       "${selectedModel}",
-        Provider:    "${selectedProvider}",
-        Messages:    messages,
-        Temperature: ${temperature},
-        MaxTokens:   ${maxTokens},
-    }
-    
-    body, _ := json.Marshal(reqBody)
-    req, _ := http.NewRequest("POST", BaseURL+"/chat/completions", bytes.NewBuffer(body))
-    req.Header.Set("Authorization", "Bearer "+APIKey)
-    req.Header.Set("Content-Type", "application/json")
-    
-    resp, _ := http.DefaultClient.Do(req)
-    defer resp.Body.Close()
-    
-    fmt.Println("Response received")
-}`,
-        },
-        rust: {
-            label: "Rust",
-            icon: "🦀",
-            code: `use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
-use serde::Serialize;
-
-const API_KEY: &str = "your-api-key";
-const BASE_URL: &str = "${baseUrl}";
-
-#[derive(Serialize)]
-struct ChatRequest {
-    model: String,
-    provider: String,
-    messages: Vec<Message>,
-    temperature: f32,
-    max_tokens: u32,
-}
-
-#[derive(Serialize)]
-struct Message {
-    role: String,
-    content: String,
-}
-
-// Usage with ${currentProvider?.name || selectedProvider}
-#[tokio::main]
-async fn main() {
-    let client = reqwest::Client::new();
-    
-    let mut headers = HeaderMap::new();
-    headers.insert(AUTHORIZATION, format!("Bearer {}", API_KEY).parse().unwrap());
-    headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
-    
-    let request = ChatRequest {
-        model: "${selectedModel}".to_string(),
-        provider: "${selectedProvider}".to_string(),
-        messages: vec![
-            Message { role: "system".into(), content: "${systemPrompt}".into() },
-            Message { role: "user".into(), content: "Hello!".into() },
-        ],
-        temperature: ${temperature},
-        max_tokens: ${maxTokens},
-    };
-    
-    let response = client
-        .post(format!("{}/chat/completions", BASE_URL))
-        .headers(headers)
-        .json(&request)
-        .send()
-        .await
-        .unwrap();
-    
-    println!("{}", response.text().await.unwrap());
-}`,
         },
     };
 
@@ -378,9 +270,13 @@ async fn main() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold">Playground</h1>
-                    <p className="text-muted-foreground">Test models and get integration code</p>
+                    <p className="text-muted-foreground">Test your configured providers and get integration code</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={fetchProviders} disabled={loadingProviders}>
+                        <RefreshCw className={`w-4 h-4 mr-2 ${loadingProviders ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => setShowSettings(!showSettings)}>
                         <Settings className="w-4 h-4 mr-2" />
                         Settings
@@ -391,6 +287,26 @@ async fn main() {
                     </Button>
                 </div>
             </div>
+
+            {/* No providers warning */}
+            {!loadingProviders && providers.length === 0 && (
+                <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                        No providers configured. Go to <strong>Providers</strong> to add an account with your API key.
+                    </AlertDescription>
+                </Alert>
+            )}
+
+            {/* No models warning */}
+            {!loadingProviders && providers.length > 0 && availableModels.length === 0 && selectedProvider && (
+                <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                        No models configured for this provider. Edit the account in <strong>Providers</strong> to add models.
+                    </AlertDescription>
+                </Alert>
+            )}
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
@@ -411,33 +327,46 @@ async fn main() {
                             <div className="flex items-center gap-4 flex-wrap">
                                 <div className="flex items-center gap-2">
                                     <Label>Provider:</Label>
-                                    <Select value={selectedProvider} onValueChange={(v) => {
-                                        setSelectedProvider(v);
-                                        const models = providers.find(p => p.id === v)?.models || [];
-                                        setSelectedModel(models[0] || "");
-                                    }}>
-                                        <SelectTrigger className="w-36">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {providers.map(p => (
-                                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    {loadingProviders ? (
+                                        <Skeleton className="h-9 w-36" />
+                                    ) : (
+                                        <Select value={selectedProvider} onValueChange={(v) => {
+                                            setSelectedProvider(v);
+                                            const provider = providers.find(p => p.id === v);
+                                            const firstModel = provider?.accounts
+                                                ?.filter(a => a.enabled)
+                                                ?.flatMap(a => a.models || [])?.[0];
+                                            setSelectedModel(firstModel?.id || firstModel?.name || "");
+                                        }}>
+                                            <SelectTrigger className="w-36">
+                                                <SelectValue placeholder="Select provider" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {providers.filter(p => p.accounts?.some(a => a.enabled)).map(p => (
+                                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Label>Model:</Label>
-                                    <Select value={selectedModel} onValueChange={setSelectedModel}>
-                                        <SelectTrigger className="w-40">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {currentProvider?.models.map(m => (
-                                                <SelectItem key={m} value={m}>{m}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    {loadingProviders ? (
+                                        <Skeleton className="h-9 w-48" />
+                                    ) : (
+                                        <Select value={selectedModel} onValueChange={setSelectedModel}>
+                                            <SelectTrigger className="w-48">
+                                                <SelectValue placeholder="Select model" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availableModels.map(m => (
+                                                    <SelectItem key={m.id || m.name} value={m.id || m.name}>
+                                                        {m.name || m.id}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Label>Temp:</Label>
@@ -451,9 +380,11 @@ async fn main() {
                                         onChange={e => setTemperature(parseFloat(e.target.value))}
                                     />
                                 </div>
-                                <Badge variant="secondary" className="ml-auto">
-                                    {currentProvider?.name} • {selectedModel}
-                                </Badge>
+                                {selectedProvider && selectedModel && (
+                                    <Badge variant="secondary" className="ml-auto">
+                                        {currentProvider?.name} • {selectedModel}
+                                    </Badge>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -495,25 +426,28 @@ async fn main() {
                                 <div className="h-full flex items-center justify-center text-muted-foreground">
                                     <div className="text-center space-y-2">
                                         <Bot className="w-12 h-12 mx-auto opacity-50" />
-                                        <p>Start a conversation with {currentProvider?.name}</p>
+                                        <p>Start a conversation{currentProvider ? ` with ${currentProvider.name}` : ''}</p>
+                                        {!selectedModel && (
+                                            <p className="text-sm text-amber-600">Select a model to begin</p>
+                                        )}
                                     </div>
                                 </div>
                             ) : (
                                 messages.map((msg, i) => (
                                     <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
                                         {msg.role === "assistant" && (
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center flex-shrink-0">
                                                 <Bot className="w-4 h-4 text-white" />
                                             </div>
                                         )}
                                         <div className={`max-w-[70%] p-3 rounded-lg ${msg.role === "user"
-                                                ? "bg-primary text-primary-foreground"
-                                                : "bg-muted"
+                                            ? "bg-primary text-primary-foreground"
+                                            : "bg-muted"
                                             }`}>
                                             <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                                         </div>
                                         {msg.role === "user" && (
-                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                                                 <User className="w-4 h-4" />
                                             </div>
                                         )}
@@ -528,8 +462,8 @@ async fn main() {
                                     <div className="bg-muted p-3 rounded-lg">
                                         <div className="flex gap-1">
                                             <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                                            <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce delay-100" />
-                                            <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce delay-200" />
+                                            <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:100ms]" />
+                                            <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:200ms]" />
                                         </div>
                                     </div>
                                 </div>
@@ -540,12 +474,13 @@ async fn main() {
                         <div className="p-4 border-t">
                             <div className="flex gap-2">
                                 <Input
-                                    placeholder="Type a message..."
+                                    placeholder={selectedModel ? "Type a message..." : "Select a model first..."}
                                     value={input}
                                     onChange={e => setInput(e.target.value)}
                                     onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
+                                    disabled={!selectedModel}
                                 />
-                                <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
+                                <Button onClick={handleSend} disabled={isLoading || !input.trim() || !selectedModel}>
                                     <Send className="w-4 h-4" />
                                 </Button>
                             </div>
@@ -562,19 +497,12 @@ async fn main() {
                                     <Terminal className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold">API Endpoints</h3>
-                                    <p className="text-sm text-white/60">Use these with your API key from Applications</p>
+                                    <h3 className="font-semibold">API Endpoint</h3>
+                                    <p className="text-sm text-white/60">Use with your API key from API Keys page</p>
                                 </div>
-                                <div className="ml-auto flex gap-6 text-sm">
-                                    <div className="text-right">
-                                        <p className="text-white/50">REST</p>
-                                        <code className="text-cyan-300">{baseUrl}</code>
-                                    </div>
-                                    <div className="h-8 w-px bg-white/20" />
-                                    <div className="text-right">
-                                        <p className="text-white/50">gRPC</p>
-                                        <code className="text-violet-300">localhost:4000</code>
-                                    </div>
+                                <div className="ml-auto text-right">
+                                    <p className="text-white/50">Base URL</p>
+                                    <code className="text-cyan-300">{apiUrl}</code>
                                 </div>
                             </div>
                         </CardContent>
@@ -601,7 +529,7 @@ async fn main() {
                         <CardHeader className="py-3 flex-row items-center justify-between">
                             <CardTitle className="text-sm flex items-center gap-2">
                                 <Code2 className="w-4 h-4" />
-                                {codeSnippets[selectedLanguage]?.label} - {currentProvider?.name}
+                                {codeSnippets[selectedLanguage]?.label} - {currentProvider?.name || "Select Provider"}
                             </CardTitle>
                             <Button
                                 variant="ghost"
@@ -630,7 +558,7 @@ async fn main() {
                                 <div className="text-sm">
                                     <p className="font-medium text-amber-600">Get your API Key</p>
                                     <p className="text-muted-foreground">
-                                        Create an application in the <strong>Applications</strong> section to get your API key.
+                                        Create an API key in the <strong>API Keys</strong> section to authenticate your requests.
                                         The code snippets above are pre-configured with your current settings.
                                     </p>
                                 </div>
