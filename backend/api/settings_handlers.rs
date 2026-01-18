@@ -7,6 +7,7 @@ use serde_json::json;
 use crate::api::state::AppState;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub organization_name: String,
     pub support_email: String,
@@ -16,6 +17,7 @@ pub struct AppSettings {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct SmtpSettings {
     pub host: String,
     pub port: i32,
@@ -28,17 +30,19 @@ pub struct SmtpSettings {
 // GET /settings
 pub async fn get_settings(State(state): State<Arc<AppState>>) -> Json<AppSettings> {
     // Try to fetch from DB
-    let result = sqlx::query!("SELECT value FROM settings WHERE key = 'general'")
-        .fetch_optional(&state.db)
-        .await;
+    if let Some(pool) = &state.db_pool {
+        // Use runtime query to avoid compile-time DB check
+        let row: Option<(serde_json::Value,)> = sqlx::query_as("SELECT value FROM settings WHERE key = 'general'")
+            .fetch_optional(pool)
+            .await
+            .unwrap_or(None);
 
-    match result {
-        Ok(Some(row)) => {
-            let settings: AppSettings = serde_json::from_value(row.value).unwrap_or_else(|_| default_settings());
-            Json(settings)
-        },
-        _ => Json(default_settings()),
+        if let Some((value,)) = row {
+            let settings: AppSettings = serde_json::from_value(value).unwrap_or_else(|_| default_settings());
+            return Json(settings);
+        }
     }
+    Json(default_settings())
 }
 
 // PUT /settings
@@ -48,30 +52,33 @@ pub async fn update_settings(
 ) -> Json<serde_json::Value> {
     let value = serde_json::to_value(&payload).unwrap();
     
-    let _ = sqlx::query!(
-        "INSERT INTO settings (key, value, updated_at) VALUES ('general', $1, NOW()) 
-         ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()",
-        value
-    )
-    .execute(&state.db)
-    .await;
+    if let Some(pool) = &state.db_pool {
+        let _ = sqlx::query(
+            "INSERT INTO settings (key, value, updated_at) VALUES ('general', $1, NOW()) 
+             ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()"
+        )
+        .bind(value)
+        .execute(pool)
+        .await;
+    }
 
     Json(json!({ "success": true }))
 }
 
 // GET /settings/smtp
 pub async fn get_smtp_settings(State(state): State<Arc<AppState>>) -> Json<SmtpSettings> {
-    let result = sqlx::query!("SELECT value FROM settings WHERE key = 'smtp'")
-        .fetch_optional(&state.db)
-        .await;
+    if let Some(pool) = &state.db_pool {
+        let row: Option<(serde_json::Value,)> = sqlx::query_as("SELECT value FROM settings WHERE key = 'smtp'")
+            .fetch_optional(pool)
+            .await
+            .unwrap_or(None);
 
-    match result {
-        Ok(Some(row)) => {
-            let settings: SmtpSettings = serde_json::from_value(row.value).unwrap_or_else(|_| default_smtp_settings());
-            Json(settings)
-        },
-        _ => Json(default_smtp_settings()),
+        if let Some((value,)) = row {
+            let settings: SmtpSettings = serde_json::from_value(value).unwrap_or_else(|_| default_smtp_settings());
+            return Json(settings);
+        }
     }
+    Json(default_smtp_settings())
 }
 
 // PUT /settings/smtp
@@ -81,13 +88,15 @@ pub async fn update_smtp_settings(
 ) -> Json<serde_json::Value> {
     let value = serde_json::to_value(&payload).unwrap();
     
-    let _ = sqlx::query!(
-        "INSERT INTO settings (key, value, updated_at) VALUES ('smtp', $1, NOW()) 
-         ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()",
-        value
-    )
-    .execute(&state.db)
-    .await;
+    if let Some(pool) = &state.db_pool {
+        let _ = sqlx::query(
+            "INSERT INTO settings (key, value, updated_at) VALUES ('smtp', $1, NOW()) 
+             ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()"
+        )
+        .bind(value)
+        .execute(pool)
+        .await;
+    }
 
     Json(json!({ "success": true }))
 }

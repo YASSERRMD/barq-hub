@@ -131,7 +131,7 @@ export interface HealthStatus {
 // Billing types
 export interface BillingUsage {
     totalCost: number;
-    totalRequests: number;
+    requestCount: number;
     byProvider: {
         provider: string;
         cost: number;

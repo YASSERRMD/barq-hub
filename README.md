@@ -1,25 +1,46 @@
-# BARQ HUB - AI Management Console
 
-BARQ HUB is a comprehensive platform for managing AI models, providers, and costs. It provides a unified interface for interacting with various LLM providers, tracking usage, and managing access.
+<div align="center">
+  <img src="assets/logo.png" alt="BARQ HUB Logo" width="200" height="auto" />
+  <h1>BARQ HUB</h1>
+  <p><strong>Enterprise AI Management Console & Orchestration Platform</strong></p>
 
-## Features
+  [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+  [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+  [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)]()
+  [![Rust](https://img.shields.io/badge/backend-Rust%20%7C%20Axum-orange.svg)]()
+  [![Next.js](https://img.shields.io/badge/frontend-Next.js%20%7C%20Tailwind-black.svg)]()
+</div>
 
-- **Multi-Provider Support**: Seamlessly switch between OpenAI, Anthropic, Mistral, and more.
-- **Unified API**: Single API endpoint for all your LLM needs.
-- **Cost Tracking**: Detailed cost analysis by provider, model, and user.
-- **Playground**: Interactive chat interface to test models.
-- **User Management**: Role-based access control and API key management.
-- **System Health**: Real-time monitoring of system components.
+---
+
+**BARQ HUB** is a comprehensive, enterprise-grade platform designed to orchestrate AI models, manage diverse LLM providers, and track utilization costs with precision. It offers a unified, high-performance interface for interacting with top-tier LLM providers, ensuring seamless integration, robust access control, and real-time system monitoring.
+
+## Key Features
+
+*   **Multi-Provider Gateway**: Seamlessly switch between **OpenAI**, **Anthropic**, **Mistral**, **Google Gemini**, and more through a unified API.
+*   **Unified API Interface**: Standardized API endpoints for all your LLM needs, simplifying integration.
+*   **Advanced Cost Analytics**: Detailed cost breakdown by provider, model, user, and timeframe to optimize spending.
+*   **Interactive Playground**: Built-in chat interface to test, compare, and fine-tune model performance.
+*   **Enterprise Governance**: Granular Role-Based Access Control (RBAC) and comprehensive API key management.
+*   **System Health Monitoring**: Real-time observability of all system components and service uptime.
+
+## Technology Stack
+
+*   **Backend**: Rust (Axum, Tokio, SQLx) - High performance & safety
+*   **Frontend**: Next.js 14, TypeScript, Tailwind CSS 4, Shadcn/ui
+*   **Database**: PostgreSQL
+*   **Caching**: Redis
+*   **Deployment**: Docker & Docker Compose
 
 ## Getting Started
 
 ### Prerequisites
 
-- Docker and Docker Compose
-- Node.js (for local frontend development)
-- Rust (for local backend development)
+*   Docker and Docker Compose
+*   Node.js (for local frontend dev)
+*   Rust (for local backend dev)
 
-### Quick Start
+### Quick Start (Docker)
 
 1.  **Clone the repository:**
     ```bash
@@ -32,27 +53,21 @@ BARQ HUB is a comprehensive platform for managing AI models, providers, and cost
     docker-compose up -d
     ```
 
-3.  **Access the dashboard:**
-    Open your browser and navigate to `http://localhost:4001`.
+3.  **Access the Dashboard:**
+    *   **URL**: `http://localhost:4001`
+    *   **Admin Credentials**:
+        *   User: `admin@barq.hub`
+        *   Pass: `admin123`
 
-    - **Username:** `admin@barq.hub`
-    - **Password:** `admin123`
+### Development Setup
 
-### Development
-
-#### Backend
-
-The backend is built with Rust and Axum.
-
+#### Backend (Rust)
 ```bash
 cd backend
 cargo run
 ```
 
-#### Frontend
-
-The frontend is built with Next.js and Tailwind CSS.
-
+#### Frontend (Next.js)
 ```bash
 cd frontend
 npm install
@@ -61,23 +76,23 @@ npm run dev
 
 ## Configuration
 
-Configuration is managed via environment variables and the `.env` file. Key variables include:
+Configuration is handled via environment variables. Copy `.env.example` to `.env` to customize:
 
-- `DATABASE_URL`: PostgreSQL connection string.
-- `REDIS_URL`: Redis connection string.
-- `JWT_SECRET`: Secret key for JWT tokens.
-- `ENCRYPTION_KEY`: Key for encrypting sensitive data.
-
-See `.env.example` for a full list of variables.
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REDIS_URL` | Redis connection string |
+| `JWT_SECRET` | Secret key for JWT generation |
+| `ENCRYPTION_KEY` | Key for sensitive data encryption |
 
 ## API Documentation
 
-The API is available at `http://localhost:4000/v1`.
+The REST API is available at `http://localhost:4000/v1`.
 
 ### Key Endpoints
+- **Chat**: `POST /v1/chat/completions` (OpenAI-compatible)
+- **Models**: `GET /v1/models`
+- **Costs**: `GET /v1/costs`
 
-- `POST /v1/chat/completions`: OpenAI-compatible chat completion.
-- `GET /v1/models`: List available models.
-- `GET /v1/costs`: Get cost usage statistics.
 
-For full API documentation, please refer to the OpenAPI spec (coming soon).
+

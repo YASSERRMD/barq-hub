@@ -18,12 +18,7 @@ pub struct OpenAIAdapter {
 }
 
 impl OpenAIAdapter {
-    pub fn new(provider: Provider) -> Self {
-        let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(120))
-            .build()
-            .expect("Failed to create HTTP client");
-
+    pub fn new(provider: Provider, client: Client) -> Self {
         Self { provider, client }
     }
 }
@@ -206,14 +201,16 @@ mod tests {
     #[test]
     fn test_adapter_creation() {
         let provider = test_provider();
-        let adapter = OpenAIAdapter::new(provider.clone());
+        let client = Client::new();
+        let adapter = OpenAIAdapter::new(provider.clone(), client);
         assert_eq!(adapter.name(), "OpenAI Test");
     }
 
     #[test]
     fn test_cost_calculation() {
         let provider = test_provider();
-        let adapter = OpenAIAdapter::new(provider);
+        let client = Client::new();
+        let adapter = OpenAIAdapter::new(provider, client);
         
         let usage = TokenUsage {
             prompt_tokens: 1000,
@@ -229,7 +226,8 @@ mod tests {
     #[test]
     fn test_token_estimation() {
         let provider = test_provider();
-        let adapter = OpenAIAdapter::new(provider);
+        let client = Client::new();
+        let adapter = OpenAIAdapter::new(provider, client);
         
         let text = "Hello, world! This is a test.";
         let estimate = adapter.estimate_tokens(text);

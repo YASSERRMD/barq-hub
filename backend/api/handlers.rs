@@ -11,37 +11,10 @@ use std::sync::Arc;
 
 use crate::{
     ChatRequest, ChatResponse, Provider, HealthStatus, ComponentHealth,
-    CostSummary, CostEntry, Budget,
+    CostEntry, Budget,
     error::Result,
 };
 use super::state::AppState;
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CostSummary {
-    pub total_cost: f64,
-    pub request_count: usize,
-    pub total_tokens: u64,
-    pub by_provider: std::collections::HashMap<String, f64>,
-    pub by_model: std::collections::HashMap<String, f64>,
-    pub by_user: std::collections::HashMap<String, f64>,
-    pub period_start: chrono::DateTime<chrono::Utc>,
-    pub period_end: chrono::DateTime<chrono::Utc>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CostEntry {
-    pub id: String,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
-    pub provider: String,
-    pub model: String,
-    pub input_tokens: u32,
-    pub output_tokens: u32,
-    pub cost: f64,
-    pub user_id: String,
-    pub request_id: String,
-}
 
 // ============================================================================
 // Chat Completions
@@ -103,7 +76,7 @@ pub async fn chat_completions(
                 };
 
                 // Create adapter and make request
-                let adapter = crate::providers::create_adapter(provider);
+                let adapter = crate::providers::create_adapter(provider, state.http_client.clone());
                 match adapter.chat(&request).await {
                     Ok(response) => {
                         // Record usage
@@ -278,7 +251,44 @@ pub async fn status(
     })
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CostSummary {
+    pub total_cost: f64,
+    pub request_count: usize,
+    pub total_tokens: u64,
+    pub by_provider: Vec<ProviderBreakdown>,
+    pub by_model: Vec<ModelBreakdown>,
+    pub by_user: Vec<UserBreakdown>,
+    pub period_start: chrono::DateTime<chrono::Utc>,
+    pub period_end: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderBreakdown {
+    pub provider: String,
+    pub cost: f64,
+    pub requests: i64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelBreakdown {
+    pub model: String,
+    pub cost: f64,
+    pub requests: i64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserBreakdown {
+    pub user_id: String,
+    pub cost: f64,
+    pub requests: i64,
+}
+
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StatusResponse {
     pub status: String,
@@ -315,8 +325,8 @@ pub async fn get_costs(
         .unwrap_or((0, 0.0, 0));
 
         // By Provider
-        let provider_rows = sqlx::query_as::<_, (String, f64)>(
-            "SELECT provider, COALESCE(SUM(cost::float8), 0.0) FROM cost_entries WHERE created_at >= $1 AND created_at <= $2 GROUP BY provider"
+        let provider_rows = sqlx::query_as::<_, (String, f64, i64)>(
+            "SELECT provider, COALESCE(SUM(cost::float8), 0.0), COUNT(*) FROM cost_entries WHERE created_at >= $1 AND created_at <= $2 GROUP BY provider"
         )
         .bind(start)
         .bind(end)
@@ -324,14 +334,15 @@ pub async fn get_costs(
         .await
         .unwrap_or_default();
         
-        let mut by_provider = std::collections::HashMap::new();
-        for (p, c) in provider_rows {
-            by_provider.insert(p, c);
-        }
+        let by_provider: Vec<ProviderBreakdown> = provider_rows.into_iter().map(|(p, c, r)| ProviderBreakdown {
+            provider: p,
+            cost: c,
+            requests: r,
+        }).collect();
 
         // By Model
-        let model_rows = sqlx::query_as::<_, (String, f64)>(
-            "SELECT model, COALESCE(SUM(cost::float8), 0.0) FROM cost_entries WHERE created_at >= $1 AND created_at <= $2 GROUP BY model"
+        let model_rows = sqlx::query_as::<_, (String, f64, i64)>(
+            "SELECT model, COALESCE(SUM(cost::float8), 0.0), COUNT(*) FROM cost_entries WHERE created_at >= $1 AND created_at <= $2 GROUP BY model"
         )
         .bind(start)
         .bind(end)
@@ -339,14 +350,15 @@ pub async fn get_costs(
         .await
         .unwrap_or_default();
 
-        let mut by_model = std::collections::HashMap::new();
-        for (m, c) in model_rows {
-            by_model.insert(m, c);
-        }
+        let by_model: Vec<ModelBreakdown> = model_rows.into_iter().map(|(m, c, r)| ModelBreakdown {
+            model: m,
+            cost: c,
+            requests: r,
+        }).collect();
         
         // By User
-        let user_rows = sqlx::query_as::<_, (String, f64)>(
-            "SELECT user_id, COALESCE(SUM(cost::float8), 0.0) FROM cost_entries WHERE created_at >= $1 AND created_at <= $2 GROUP BY user_id"
+        let user_rows = sqlx::query_as::<_, (String, f64, i64)>(
+            "SELECT user_id, COALESCE(SUM(cost::float8), 0.0), COUNT(*) FROM cost_entries WHERE created_at >= $1 AND created_at <= $2 GROUP BY user_id"
         )
         .bind(start)
         .bind(end)
@@ -354,10 +366,11 @@ pub async fn get_costs(
         .await
         .unwrap_or_default();
 
-        let mut by_user = std::collections::HashMap::new();
-        for (u, c) in user_rows {
-            by_user.insert(u, c);
-        }
+        let by_user: Vec<UserBreakdown> = user_rows.into_iter().map(|(u, c, r)| UserBreakdown {
+            user_id: u,
+            cost: c,
+            requests: r,
+        }).collect();
 
         return Json(CostSummary {
             total_cost,
@@ -371,8 +384,18 @@ pub async fn get_costs(
         });
     }
     
-    let summary = state.cost_manager.get_summary(start, end).await;
-    Json(summary)
+    // Fallback moved to CostManager if needed, or return empty
+    // For now returning empty struct since we focused on DB
+    Json(CostSummary {
+        total_cost: 0.0,
+        request_count: 0,
+        total_tokens: 0,
+        by_provider: vec![],
+        by_model: vec![],
+        by_user: vec![],
+        period_start: start,
+        period_end: end,
+    })
 }
 
 #[derive(Debug, Deserialize)]

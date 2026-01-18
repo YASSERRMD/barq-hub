@@ -6,10 +6,10 @@ RUN apt-get update && apt-get install -y musl-tools libssl-dev pkg-config
 WORKDIR /app
 
 # Copy manifests
-COPY Cargo.toml ./
+COPY Cargo.toml Cargo.lock ./
 
 # Copy source
-COPY backend ./src
+COPY . .
 
 # Build for release
 # ENV OPENSSL_STATIC=1 (Not needed for dynamic linking on debian)

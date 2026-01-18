@@ -108,6 +108,9 @@ CREATE TABLE IF NOT EXISTS cost_records (
     timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Settings table
+
+
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);

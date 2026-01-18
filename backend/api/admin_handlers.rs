@@ -473,6 +473,7 @@ pub struct ApplicationResponse {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateApplicationRequest {
     pub name: String,
     pub description: Option<String>,

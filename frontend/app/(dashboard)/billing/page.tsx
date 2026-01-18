@@ -80,7 +80,7 @@ export default function BillingPage() {
                     <CardContent>
                         <div className="text-2xl font-bold">${usage?.totalCost?.toFixed(2) || "0.00"}</div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            {usage?.totalRequests.toLocaleString()} API requests
+                            {usage?.requestCount?.toLocaleString() || 0} API requests
                         </p>
                     </CardContent>
                 </Card>
